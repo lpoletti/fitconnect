@@ -96,6 +96,10 @@ model WorkoutTemplateExercise {
   restTime        String?   @map("rest_time")
   notes           String?
   order           Int       @default(0)
+  hasWarmup       Boolean   @default(false) @map("has_warmup")
+  warmupSets      Int?      @map("warmup_sets")
+  warmupReps      String?   @map("warmup_reps")
+  warmupWeight    String?   @map("warmup_weight")
 
   template        WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
@@ -129,6 +133,10 @@ model AssignedWorkoutExercise {
   restTime        String?   @map("rest_time")
   notes           String?
   order           Int       @default(0)
+  hasWarmup       Boolean   @default(false) @map("has_warmup")
+  warmupSets      Int?      @map("warmup_sets")
+  warmupReps      String?   @map("warmup_reps")
+  warmupWeight    String?   @map("warmup_weight")
 
   assignedWorkout AssignedWorkout @relation(fields: [assignedWorkoutId], references: [id], onDelete: Cascade)
 
@@ -157,6 +165,9 @@ model ExerciseLog {
   repsCompleted   String    @map("reps_completed")
   weightUsed      String?   @map("weight_used")
   notes           String?
+  warmupSetsCompleted Int?  @map("warmup_sets_completed")
+  warmupRepsCompleted String? @map("warmup_reps_completed")
+  warmupWeightUsed    String? @map("warmup_weight_used")
 
   workoutLog      WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
 

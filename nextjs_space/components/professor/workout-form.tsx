@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, GripVertical, Dumbbell } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, Dumbbell, Flame } from 'lucide-react';
 
 interface Exercise {
   exerciseName: string;
@@ -14,6 +15,10 @@ interface Exercise {
   suggestedWeight: string;
   restTime: string;
   notes: string;
+  hasWarmup: boolean;
+  warmupSets: number;
+  warmupReps: string;
+  warmupWeight: string;
 }
 
 interface WorkoutFormProps {
@@ -28,6 +33,19 @@ interface WorkoutFormProps {
   loading?: boolean;
 }
 
+const defaultExercise = (): Exercise => ({
+  exerciseName: '',
+  sets: 3,
+  reps: '12',
+  suggestedWeight: '',
+  restTime: '60s',
+  notes: '',
+  hasWarmup: false,
+  warmupSets: 2,
+  warmupReps: '15',
+  warmupWeight: '',
+});
+
 export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loading = false }: WorkoutFormProps) {
   const [name, setName] = useState(initialData?.name ?? '');
   const [category, setCategory] = useState(initialData?.category ?? '');
@@ -41,12 +59,16 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
           suggestedWeight: e?.suggestedWeight ?? '',
           restTime: e?.restTime ?? '',
           notes: e?.notes ?? '',
+          hasWarmup: e?.hasWarmup ?? false,
+          warmupSets: e?.warmupSets ?? 2,
+          warmupReps: e?.warmupReps ?? '15',
+          warmupWeight: e?.warmupWeight ?? '',
         }))
-      : [{ exerciseName: '', sets: 3, reps: '12', suggestedWeight: '', restTime: '60s', notes: '' }]
+      : [defaultExercise()]
   );
 
   const addExercise = () => {
-    setExercises([...exercises, { exerciseName: '', sets: 3, reps: '12', suggestedWeight: '', restTime: '60s', notes: '' }]);
+    setExercises([...exercises, defaultExercise()]);
   };
 
   const removeExercise = (index: number) => {
@@ -138,6 +160,48 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
                 <Input value={ex.notes} onChange={(e: any) => updateExercise(i, 'notes', e.target.value)}
                   placeholder="Observações sobre o exercício" />
               </div>
+            </div>
+
+            {/* Warmup toggle */}
+            <div className="border-t border-border pt-3 mt-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Flame className={`h-4 w-4 ${ex.hasWarmup ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                  <Label className="text-xs font-medium cursor-pointer">Séries de Aquecimento</Label>
+                </div>
+                <Switch
+                  checked={ex.hasWarmup}
+                  onCheckedChange={(checked: boolean) => updateExercise(i, 'hasWarmup', checked)}
+                />
+              </div>
+
+              {ex.hasWarmup && (
+                <div className="mt-3 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-800/30 rounded-lg p-3 space-y-2">
+                  <p className="text-xs text-orange-700 dark:text-orange-400 font-medium flex items-center gap-1">
+                    <Flame className="h-3 w-3" /> Configuração do Aquecimento
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Séries</Label>
+                      <Input type="number" min={1} value={ex.warmupSets}
+                        onChange={(e: any) => updateExercise(i, 'warmupSets', parseInt(e.target.value) || 1)}
+                        className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Repetições</Label>
+                      <Input value={ex.warmupReps}
+                        onChange={(e: any) => updateExercise(i, 'warmupReps', e.target.value)}
+                        placeholder="15" className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Carga</Label>
+                      <Input value={ex.warmupWeight}
+                        onChange={(e: any) => updateExercise(i, 'warmupWeight', e.target.value)}
+                        placeholder="10kg" className="h-8 text-sm" />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}

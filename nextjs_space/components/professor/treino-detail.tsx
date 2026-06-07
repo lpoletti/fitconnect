@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import {
   LayoutDashboard, Users, ClipboardList, ArrowLeft, Edit,
-  Dumbbell, Tag, Clock, Weight
+  Dumbbell, Tag, Clock, Weight, Flame
 } from 'lucide-react';
 
 const navItems = [
@@ -85,6 +85,18 @@ export function TreinoDetail({ id }: { id: string }) {
                       </div>
                     </div>
                     {ex?.notes && <p className="text-xs text-muted-foreground mt-2 ml-11">{ex.notes}</p>}
+                    {ex?.hasWarmup && (
+                      <div className="mt-2 ml-11 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-800/30 rounded-lg px-3 py-2">
+                        <p className="text-xs font-medium text-orange-700 dark:text-orange-400 flex items-center gap-1 mb-1">
+                          <Flame className="h-3 w-3" /> Aquecimento
+                        </p>
+                        <div className="flex flex-wrap gap-3 text-xs text-orange-600 dark:text-orange-400">
+                          <span>{ex.warmupSets ?? 0} séries</span>
+                          <span>{ex.warmupReps ?? '-'} reps</span>
+                          {ex.warmupWeight && <span className="flex items-center gap-1"><Weight className="h-3 w-3" />{ex.warmupWeight}</span>}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
