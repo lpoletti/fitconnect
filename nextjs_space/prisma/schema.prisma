@@ -1,0 +1,164 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/fitconnect/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String    @map("password_hash")
+  userType      String    @map("user_type") // 'professor' | 'aluno'
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  professor     Professor?
+  student       Student?
+
+  @@map("users")
+}
+
+model Professor {
+  id            String    @id @default(cuid())
+  userId        String    @unique @map("user_id")
+  plan          String    @default("free") // 'free' | 'pro'
+  maxStudents   Int       @default(2) @map("max_students")
+  specialty     String?   @default("Personal Trainer")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentLinks  StudentProfessorLink[]
+  workoutTemplates WorkoutTemplate[]
+  assignedWorkouts AssignedWorkout[]
+
+  @@map("professors")
+}
+
+model Student {
+  id            String    @id @default(cuid())
+  userId        String    @unique @map("user_id")
+  birthDate     DateTime? @map("birth_date")
+  height        Float?
+  weight        Float?
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  professorLinks StudentProfessorLink[]
+  assignedWorkouts AssignedWorkout[]
+  workoutLogs   WorkoutLog[]
+
+  @@map("students")
+}
+
+model StudentProfessorLink {
+  id            String    @id @default(cuid())
+  studentId     String    @map("student_id")
+  professorId   String    @map("professor_id")
+  status        String    @default("pending") // 'active' | 'inactive' | 'pending'
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  professor     Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, professorId])
+  @@map("student_professor_links")
+}
+
+model WorkoutTemplate {
+  id            String    @id @default(cuid())
+  professorId   String    @map("professor_id")
+  name          String
+  category      String?
+  description   String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  professor     Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  exercises     WorkoutTemplateExercise[]
+
+  @@map("workout_templates")
+}
+
+model WorkoutTemplateExercise {
+  id              String    @id @default(cuid())
+  templateId      String    @map("template_id")
+  exerciseName    String    @map("exercise_name")
+  sets            Int       @default(3)
+  reps            String    @default("12")
+  suggestedWeight String?   @map("suggested_weight")
+  restTime        String?   @map("rest_time")
+  notes           String?
+  order           Int       @default(0)
+
+  template        WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("workout_template_exercises")
+}
+
+model AssignedWorkout {
+  id              String    @id @default(cuid())
+  studentId       String    @map("student_id")
+  professorId     String    @map("professor_id")
+  workoutName     String    @map("workout_name")
+  startDate       DateTime  @map("start_date")
+  status          String    @default("active") // 'active' | 'completed' | 'inactive'
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  professor       Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  exercises       AssignedWorkoutExercise[]
+  workoutLogs     WorkoutLog[]
+
+  @@map("assigned_workouts")
+}
+
+model AssignedWorkoutExercise {
+  id              String    @id @default(cuid())
+  assignedWorkoutId String  @map("assigned_workout_id")
+  exerciseName    String    @map("exercise_name")
+  sets            Int       @default(3)
+  reps            String    @default("12")
+  suggestedWeight String?   @map("suggested_weight")
+  restTime        String?   @map("rest_time")
+  notes           String?
+  order           Int       @default(0)
+
+  assignedWorkout AssignedWorkout @relation(fields: [assignedWorkoutId], references: [id], onDelete: Cascade)
+
+  @@map("assigned_workout_exercises")
+}
+
+model WorkoutLog {
+  id              String    @id @default(cuid())
+  studentId       String    @map("student_id")
+  assignedWorkoutId String  @map("assigned_workout_id")
+  completedAt     DateTime  @default(now()) @map("completed_at")
+  notes           String?
+
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignedWorkout AssignedWorkout @relation(fields: [assignedWorkoutId], references: [id], onDelete: Cascade)
+  exerciseLogs    ExerciseLog[]
+
+  @@map("workout_logs")
+}
+
+model ExerciseLog {
+  id              String    @id @default(cuid())
+  workoutLogId    String    @map("workout_log_id")
+  exerciseName    String    @map("exercise_name")
+  setsCompleted   Int       @map("sets_completed")
+  repsCompleted   String    @map("reps_completed")
+  weightUsed      String?   @map("weight_used")
+  notes           String?
+
+  workoutLog      WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+
+  @@map("exercise_logs")
+}
