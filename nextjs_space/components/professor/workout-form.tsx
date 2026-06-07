@@ -6,19 +6,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Dumbbell, Flame } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Flame, Copy } from 'lucide-react';
+
+interface SetConfig {
+  reps: string;
+  weight: string;
+  restTime: string;
+}
+
+interface WarmupSetConfig {
+  reps: string;
+  weight: string;
+  weightUnit: 'kg' | 'percent';
+  restTime: string;
+}
 
 interface Exercise {
   exerciseName: string;
-  sets: number;
-  reps: string;
-  suggestedWeight: string;
-  restTime: string;
   notes: string;
+  setsConfig: SetConfig[];
   hasWarmup: boolean;
-  warmupSets: number;
-  warmupReps: string;
-  warmupWeight: string;
+  warmupConfig: WarmupSetConfig[];
 }
 
 interface WorkoutFormProps {
@@ -26,24 +34,68 @@ interface WorkoutFormProps {
     name: string;
     category: string;
     description: string;
-    exercises: Exercise[];
+    exercises: any[];
   };
   onSubmit: (data: any) => Promise<void>;
   submitLabel?: string;
   loading?: boolean;
 }
 
+const defaultSet = (): SetConfig => ({ reps: '12', weight: '', restTime: '60s' });
+const defaultWarmupSet = (): WarmupSetConfig => ({ reps: '15', weight: '50', weightUnit: 'percent', restTime: '30s' });
+
+function parseExercise(e: any): Exercise {
+  // Support new format (setsConfig) or legacy format
+  let setsConfig: SetConfig[] = [];
+  if (e?.setsConfig && Array.isArray(e.setsConfig) && e.setsConfig.length > 0) {
+    setsConfig = e.setsConfig.map((s: any) => ({
+      reps: s?.reps ?? '12',
+      weight: s?.weight ?? '',
+      restTime: s?.restTime ?? '60s',
+    }));
+  } else {
+    // Legacy: expand flat fields into individual sets
+    const count = e?.sets ?? 3;
+    setsConfig = Array.from({ length: count }, () => ({
+      reps: e?.reps ?? '12',
+      weight: e?.suggestedWeight ?? '',
+      restTime: e?.restTime ?? '60s',
+    }));
+  }
+
+  let warmupConfig: WarmupSetConfig[] = [];
+  if (e?.warmupConfig && Array.isArray(e.warmupConfig) && e.warmupConfig.length > 0) {
+    warmupConfig = e.warmupConfig.map((s: any) => ({
+      reps: s?.reps ?? '15',
+      weight: s?.weight ?? '50',
+      weightUnit: s?.weightUnit === 'kg' ? 'kg' : 'percent',
+      restTime: s?.restTime ?? '30s',
+    }));
+  } else if (e?.hasWarmup) {
+    const count = e?.warmupSets ?? 2;
+    warmupConfig = Array.from({ length: count }, () => ({
+      reps: e?.warmupReps ?? '15',
+      weight: e?.warmupWeight ?? '50',
+      weightUnit: 'percent' as const,
+      restTime: '30s',
+    }));
+  }
+
+  return {
+    exerciseName: e?.exerciseName ?? '',
+    notes: e?.notes ?? '',
+    setsConfig: setsConfig.length > 0 ? setsConfig : [defaultSet()],
+    hasWarmup: e?.hasWarmup ?? false,
+    warmupConfig: warmupConfig.length > 0 ? warmupConfig : [defaultWarmupSet()],
+  };
+}
+
 const defaultExercise = (): Exercise => ({
   exerciseName: '',
-  sets: 3,
-  reps: '12',
-  suggestedWeight: '',
-  restTime: '60s',
   notes: '',
+  setsConfig: [defaultSet(), defaultSet(), defaultSet()],
   hasWarmup: false,
-  warmupSets: 2,
-  warmupReps: '15',
-  warmupWeight: '',
+  warmupConfig: [defaultWarmupSet()],
 });
 
 export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loading = false }: WorkoutFormProps) {
@@ -52,33 +104,59 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [exercises, setExercises] = useState<Exercise[]>(
     initialData?.exercises?.length
-      ? initialData.exercises.map((e: any) => ({
-          exerciseName: e?.exerciseName ?? '',
-          sets: e?.sets ?? 3,
-          reps: e?.reps ?? '12',
-          suggestedWeight: e?.suggestedWeight ?? '',
-          restTime: e?.restTime ?? '',
-          notes: e?.notes ?? '',
-          hasWarmup: e?.hasWarmup ?? false,
-          warmupSets: e?.warmupSets ?? 2,
-          warmupReps: e?.warmupReps ?? '15',
-          warmupWeight: e?.warmupWeight ?? '',
-        }))
+      ? initialData.exercises.map(parseExercise)
       : [defaultExercise()]
   );
 
-  const addExercise = () => {
-    setExercises([...exercises, defaultExercise()]);
-  };
+  const addExercise = () => setExercises([...exercises, defaultExercise()]);
+  const removeExercise = (i: number) => setExercises(exercises.filter((_: any, idx: number) => idx !== i));
 
-  const removeExercise = (index: number) => {
-    setExercises(exercises.filter((_: any, i: number) => i !== index));
-  };
-
-  const updateExercise = (index: number, field: string, value: any) => {
+  const updateExercise = (i: number, field: string, value: any) => {
     const updated = [...exercises];
-    (updated[index] as any)[field] = value;
+    (updated[i] as any)[field] = value;
     setExercises(updated);
+  };
+
+  const updateSet = (exIdx: number, setIdx: number, field: string, value: string) => {
+    const updated = [...exercises];
+    (updated[exIdx].setsConfig[setIdx] as any)[field] = value;
+    setExercises(updated);
+  };
+
+  const addSet = (exIdx: number) => {
+    const updated = [...exercises];
+    const lastSet = updated[exIdx].setsConfig[updated[exIdx].setsConfig.length - 1];
+    updated[exIdx].setsConfig.push({ ...lastSet });
+    setExercises(updated);
+  };
+
+  const removeSet = (exIdx: number, setIdx: number) => {
+    const updated = [...exercises];
+    if (updated[exIdx].setsConfig.length > 1) {
+      updated[exIdx].setsConfig.splice(setIdx, 1);
+      setExercises(updated);
+    }
+  };
+
+  const updateWarmupSet = (exIdx: number, setIdx: number, field: string, value: string) => {
+    const updated = [...exercises];
+    (updated[exIdx].warmupConfig[setIdx] as any)[field] = value;
+    setExercises(updated);
+  };
+
+  const addWarmupSet = (exIdx: number) => {
+    const updated = [...exercises];
+    const lastSet = updated[exIdx].warmupConfig[updated[exIdx].warmupConfig.length - 1];
+    updated[exIdx].warmupConfig.push({ ...lastSet });
+    setExercises(updated);
+  };
+
+  const removeWarmupSet = (exIdx: number, setIdx: number) => {
+    const updated = [...exercises];
+    if (updated[exIdx].warmupConfig.length > 1) {
+      updated[exIdx].warmupConfig.splice(setIdx, 1);
+      setExercises(updated);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,6 +166,7 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Workout info */}
       <div className="bg-card rounded-xl p-5 shadow-[var(--shadow-md)] space-y-4">
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -105,6 +184,7 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
         </div>
       </div>
 
+      {/* Exercises */}
       <div className="bg-card rounded-xl p-5 shadow-[var(--shadow-md)] space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-lg font-semibold flex items-center gap-2">
@@ -115,8 +195,8 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
           </Button>
         </div>
 
-        {exercises.map((ex: Exercise, i: number) => (
-          <div key={i} className="bg-muted/50 rounded-lg p-4 space-y-3">
+        {exercises.map((ex, i) => (
+          <div key={i} className="bg-muted/50 rounded-lg p-4 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">Exercício {i + 1}</span>
               {exercises.length > 1 && (
@@ -125,35 +205,12 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
                 </Button>
               )}
             </div>
+
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">Nome do Exercício *</Label>
                 <Input value={ex.exerciseName} onChange={(e: any) => updateExercise(i, 'exerciseName', e.target.value)}
                   placeholder="Ex: Supino reto" required />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Séries</Label>
-                  <Input type="number" min={1} value={ex.sets}
-                    onChange={(e: any) => updateExercise(i, 'sets', parseInt(e.target.value) || 1)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Repetições</Label>
-                  <Input value={ex.reps} onChange={(e: any) => updateExercise(i, 'reps', e.target.value)}
-                    placeholder="12" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Carga Sugerida</Label>
-                  <Input value={ex.suggestedWeight} onChange={(e: any) => updateExercise(i, 'suggestedWeight', e.target.value)}
-                    placeholder="20kg" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Descanso</Label>
-                  <Input value={ex.restTime} onChange={(e: any) => updateExercise(i, 'restTime', e.target.value)}
-                    placeholder="60s" />
-                </div>
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">Observações</Label>
@@ -162,8 +219,45 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
               </div>
             </div>
 
+            {/* Individual Sets */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Séries ({ex.setsConfig.length})</Label>
+                <Button type="button" size="sm" variant="ghost" onClick={() => addSet(i)} className="h-6 px-2 text-xs gap-1">
+                  <Plus className="h-3 w-3" /> Série
+                </Button>
+              </div>
+              <div className="space-y-1.5">
+                {/* Header */}
+                <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 px-1">
+                  <span className="w-6" />
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase">Reps</span>
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase">Carga</span>
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase">Descanso</span>
+                  <span className="w-6" />
+                </div>
+                {ex.setsConfig.map((set, si) => (
+                  <div key={si} className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 items-center">
+                    <span className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{si + 1}</span>
+                    <Input value={set.reps} onChange={(e: any) => updateSet(i, si, 'reps', e.target.value)}
+                      placeholder="12" className="h-8 text-sm" />
+                    <Input value={set.weight} onChange={(e: any) => updateSet(i, si, 'weight', e.target.value)}
+                      placeholder="20kg" className="h-8 text-sm" />
+                    <Input value={set.restTime} onChange={(e: any) => updateSet(i, si, 'restTime', e.target.value)}
+                      placeholder="60s" className="h-8 text-sm" />
+                    {ex.setsConfig.length > 1 ? (
+                      <Button type="button" size="sm" variant="ghost" onClick={() => removeSet(i, si)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    ) : <span className="w-6" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Warmup toggle */}
-            <div className="border-t border-border pt-3 mt-2">
+            <div className="border-t border-border pt-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Flame className={`h-4 w-4 ${ex.hasWarmup ? 'text-orange-500' : 'text-muted-foreground'}`} />
@@ -177,29 +271,56 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
 
               {ex.hasWarmup && (
                 <div className="mt-3 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-800/30 rounded-lg p-3 space-y-2">
-                  <p className="text-xs text-orange-700 dark:text-orange-400 font-medium flex items-center gap-1">
-                    <Flame className="h-3 w-3" /> Configuração do Aquecimento
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Séries</Label>
-                      <Input type="number" min={1} value={ex.warmupSets}
-                        onChange={(e: any) => updateExercise(i, 'warmupSets', parseInt(e.target.value) || 1)}
-                        className="h-8 text-sm" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Repetições</Label>
-                      <Input value={ex.warmupReps}
-                        onChange={(e: any) => updateExercise(i, 'warmupReps', e.target.value)}
-                        placeholder="15" className="h-8 text-sm" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Carga</Label>
-                      <Input value={ex.warmupWeight}
-                        onChange={(e: any) => updateExercise(i, 'warmupWeight', e.target.value)}
-                        placeholder="10kg" className="h-8 text-sm" />
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-orange-700 dark:text-orange-400 font-medium flex items-center gap-1">
+                      <Flame className="h-3 w-3" /> Aquecimento ({ex.warmupConfig.length} {ex.warmupConfig.length === 1 ? 'série' : 'séries'})
+                    </p>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => addWarmupSet(i)}
+                      className="h-6 px-2 text-xs gap-1 text-orange-700 dark:text-orange-400 hover:text-orange-800">
+                      <Plus className="h-3 w-3" /> Série
+                    </Button>
                   </div>
+                  <p className="text-[10px] text-orange-600/70 dark:text-orange-400/70">
+                    Carga leve (35-50% da carga máxima) para aquecer articulações e elevar temperatura corporal.
+                  </p>
+
+                  {/* Warmup header */}
+                  <div className="grid grid-cols-[auto_1fr_1fr_auto_1fr_auto] gap-2 px-1">
+                    <span className="w-5" />
+                    <span className="text-[10px] text-orange-600 dark:text-orange-400 font-medium uppercase">Reps</span>
+                    <span className="text-[10px] text-orange-600 dark:text-orange-400 font-medium uppercase">Carga</span>
+                    <span className="text-[10px] text-orange-600 dark:text-orange-400 font-medium uppercase w-14">Unid.</span>
+                    <span className="text-[10px] text-orange-600 dark:text-orange-400 font-medium uppercase">Descanso</span>
+                    <span className="w-6" />
+                  </div>
+
+                  {ex.warmupConfig.map((ws, wi) => (
+                    <div key={wi} className="grid grid-cols-[auto_1fr_1fr_auto_1fr_auto] gap-2 items-center">
+                      <span className="w-5 h-5 rounded bg-orange-200/50 dark:bg-orange-800/30 flex items-center justify-center text-[10px] font-bold text-orange-700 dark:text-orange-400">
+                        {wi + 1}
+                      </span>
+                      <Input value={ws.reps} onChange={(e: any) => updateWarmupSet(i, wi, 'reps', e.target.value)}
+                        placeholder="15" className="h-7 text-xs" />
+                      <Input value={ws.weight} onChange={(e: any) => updateWarmupSet(i, wi, 'weight', e.target.value)}
+                        placeholder={ws.weightUnit === 'percent' ? '50' : '10'} className="h-7 text-xs" />
+                      <select
+                        value={ws.weightUnit}
+                        onChange={(e: any) => updateWarmupSet(i, wi, 'weightUnit', e.target.value)}
+                        className="h-7 w-14 rounded-md border border-input bg-background px-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                      >
+                        <option value="percent">%</option>
+                        <option value="kg">kg</option>
+                      </select>
+                      <Input value={ws.restTime} onChange={(e: any) => updateWarmupSet(i, wi, 'restTime', e.target.value)}
+                        placeholder="30s" className="h-7 text-xs" />
+                      {ex.warmupConfig.length > 1 ? (
+                        <Button type="button" size="sm" variant="ghost" onClick={() => removeWarmupSet(i, wi)}
+                          className="h-6 w-6 p-0 text-orange-400 hover:text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      ) : <span className="w-6" />}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

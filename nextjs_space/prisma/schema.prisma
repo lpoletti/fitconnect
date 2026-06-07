@@ -100,6 +100,8 @@ model WorkoutTemplateExercise {
   warmupSets      Int?      @map("warmup_sets")
   warmupReps      String?   @map("warmup_reps")
   warmupWeight    String?   @map("warmup_weight")
+  setsConfig      Json?     @map("sets_config")
+  warmupConfig    Json?     @map("warmup_config")
 
   template        WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
@@ -137,6 +139,8 @@ model AssignedWorkoutExercise {
   warmupSets      Int?      @map("warmup_sets")
   warmupReps      String?   @map("warmup_reps")
   warmupWeight    String?   @map("warmup_weight")
+  setsConfig      Json?     @map("sets_config")
+  warmupConfig    Json?     @map("warmup_config")
 
   assignedWorkout AssignedWorkout @relation(fields: [assignedWorkoutId], references: [id], onDelete: Cascade)
 
@@ -168,6 +172,8 @@ model ExerciseLog {
   warmupSetsCompleted Int?  @map("warmup_sets_completed")
   warmupRepsCompleted String? @map("warmup_reps_completed")
   warmupWeightUsed    String? @map("warmup_weight_used")
+  setsLog         Json?     @map("sets_log")
+  warmupLog       Json?     @map("warmup_log")
 
   workoutLog      WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
 

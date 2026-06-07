@@ -43,19 +43,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         category: category ?? null,
         description: description ?? null,
         exercises: {
-          create: (exercises ?? []).map((ex: any, i: number) => ({
-            exerciseName: ex?.exerciseName ?? 'Exercício',
-            sets: ex?.sets ?? 3,
-            reps: ex?.reps ?? '12',
-            suggestedWeight: ex?.suggestedWeight ?? null,
-            restTime: ex?.restTime ?? null,
-            notes: ex?.notes ?? null,
-            order: i,
-            hasWarmup: ex?.hasWarmup ?? false,
-            warmupSets: ex?.hasWarmup ? (ex?.warmupSets ?? null) : null,
-            warmupReps: ex?.hasWarmup ? (ex?.warmupReps ?? null) : null,
-            warmupWeight: ex?.hasWarmup ? (ex?.warmupWeight ?? null) : null,
-          })),
+          create: (exercises ?? []).map((ex: any, i: number) => {
+            const sc = ex?.setsConfig ?? [];
+            return {
+              exerciseName: ex?.exerciseName ?? 'Exercício',
+              sets: sc.length || ex?.sets || 3,
+              reps: sc[0]?.reps ?? ex?.reps ?? '12',
+              suggestedWeight: sc[0]?.weight ?? ex?.suggestedWeight ?? null,
+              restTime: sc[0]?.restTime ?? ex?.restTime ?? null,
+              notes: ex?.notes ?? null,
+              order: i,
+              hasWarmup: ex?.hasWarmup ?? false,
+              setsConfig: sc.length > 0 ? sc : null,
+              warmupConfig: ex?.hasWarmup && ex?.warmupConfig?.length > 0 ? ex.warmupConfig : null,
+            };
+          }),
         },
       },
       include: { exercises: { orderBy: { order: 'asc' } } },

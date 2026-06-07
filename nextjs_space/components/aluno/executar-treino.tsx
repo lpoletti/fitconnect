@@ -20,16 +20,64 @@ const navItems = [
   { label: 'Histórico', href: '/aluno/historico', icon: History },
 ];
 
-interface ExerciseLog {
-  exerciseName: string;
-  setsCompleted: number;
-  repsCompleted: string;
-  weightUsed: string;
+interface SetLog {
+  reps: string;
+  weight: string;
+  restTime: string;
   completed: boolean;
-  warmupCompleted: boolean;
-  warmupSetsCompleted: number;
-  warmupRepsCompleted: string;
-  warmupWeightUsed: string;
+}
+
+interface WarmupSetLog {
+  reps: string;
+  weight: string;
+  weightUnit: string;
+  restTime: string;
+  completed: boolean;
+}
+
+interface ExerciseState {
+  exerciseName: string;
+  setsLog: SetLog[];
+  warmupLog: WarmupSetLog[];
+  hasWarmup: boolean;
+}
+
+function buildExerciseState(ex: any): ExerciseState {
+  let setsLog: SetLog[] = [];
+  if (ex?.setsConfig && Array.isArray(ex.setsConfig) && ex.setsConfig.length > 0) {
+    setsLog = ex.setsConfig.map((s: any) => ({
+      reps: s?.reps ?? '12',
+      weight: s?.weight ?? '',
+      restTime: s?.restTime ?? '60s',
+      completed: false,
+    }));
+  } else {
+    const count = ex?.sets ?? 3;
+    setsLog = Array.from({ length: count }, () => ({
+      reps: ex?.reps ?? '12',
+      weight: ex?.suggestedWeight ?? '',
+      restTime: ex?.restTime ?? '60s',
+      completed: false,
+    }));
+  }
+
+  let warmupLog: WarmupSetLog[] = [];
+  if (ex?.hasWarmup && ex?.warmupConfig && Array.isArray(ex.warmupConfig)) {
+    warmupLog = ex.warmupConfig.map((w: any) => ({
+      reps: w?.reps ?? '15',
+      weight: w?.weight ?? '',
+      weightUnit: w?.weightUnit ?? 'percent',
+      restTime: w?.restTime ?? '30s',
+      completed: false,
+    }));
+  }
+
+  return {
+    exerciseName: ex?.exerciseName ?? '',
+    hasWarmup: ex?.hasWarmup ?? false,
+    setsLog,
+    warmupLog,
+  };
 }
 
 export function ExecutarTreino({ workoutId }: { workoutId: string }) {
@@ -37,7 +85,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
   const [workout, setWorkout] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exerciseLogs, setExerciseLogs] = useState<ExerciseLog[]>([]);
+  const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>([]);
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -47,40 +95,39 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
       .then((d: any) => {
         setWorkout(d);
         if (d?.exercises) {
-          setExerciseLogs(
-            (d.exercises ?? []).map((ex: any) => ({
-              exerciseName: ex?.exerciseName ?? '',
-              setsCompleted: ex?.sets ?? 0,
-              repsCompleted: ex?.reps ?? '0',
-              weightUsed: ex?.suggestedWeight ?? '',
-              completed: false,
-              warmupCompleted: false,
-              warmupSetsCompleted: ex?.warmupSets ?? 0,
-              warmupRepsCompleted: ex?.warmupReps ?? '0',
-              warmupWeightUsed: ex?.warmupWeight ?? '',
-            }))
-          );
+          setExerciseStates((d.exercises ?? []).map(buildExerciseState));
         }
       })
       .catch(() => toast.error('Erro ao carregar treino.'))
       .finally(() => setLoading(false));
   }, [workoutId]);
 
-  const updateLog = (index: number, field: string, value: any) => {
-    const updated = [...exerciseLogs];
-    (updated[index] as any)[field] = value;
-    setExerciseLogs(updated);
+  const updateSetLog = (exIdx: number, setIdx: number, field: string, value: any) => {
+    const updated = [...exerciseStates];
+    (updated[exIdx].setsLog[setIdx] as any)[field] = value;
+    setExerciseStates(updated);
   };
 
-  const allCompleted = exerciseLogs.length > 0 && exerciseLogs.every((l: ExerciseLog, idx: number) => {
-    const ex = workout?.exercises?.[idx];
-    if (ex?.hasWarmup && !l.warmupCompleted) return false;
-    return l.completed;
+  const updateWarmupLog = (exIdx: number, setIdx: number, field: string, value: any) => {
+    const updated = [...exerciseStates];
+    (updated[exIdx].warmupLog[setIdx] as any)[field] = value;
+    setExerciseStates(updated);
+  };
+
+  const allCompleted = exerciseStates.length > 0 && exerciseStates.every((es) => {
+    const setsOk = es.setsLog.every((s) => s.completed);
+    const warmupOk = !es.hasWarmup || es.warmupLog.every((w) => w.completed);
+    return setsOk && warmupOk;
   });
+
+  const completedCount = exerciseStates.reduce((acc, es) => {
+    return acc + es.setsLog.filter((s) => s.completed).length + es.warmupLog.filter((w) => w.completed).length;
+  }, 0);
+  const totalCount = exerciseStates.reduce((acc, es) => acc + es.setsLog.length + es.warmupLog.length, 0);
 
   const handleComplete = async () => {
     if (!allCompleted) {
-      toast.error('Marque todos os exercícios como concluídos.');
+      toast.error('Marque todas as séries como concluídas.');
       return;
     }
     setSaving(true);
@@ -89,21 +136,16 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          exerciseLogs: exerciseLogs.map((l: ExerciseLog, idx: number) => {
-            const ex = workout?.exercises?.[idx];
-            const base: any = {
-              exerciseName: l.exerciseName,
-              setsCompleted: l.setsCompleted,
-              repsCompleted: l.repsCompleted,
-              weightUsed: l.weightUsed || null,
-            };
-            if (ex?.hasWarmup) {
-              base.warmupSetsCompleted = l.warmupSetsCompleted;
-              base.warmupRepsCompleted = l.warmupRepsCompleted;
-              base.warmupWeightUsed = l.warmupWeightUsed || null;
-            }
-            return base;
-          }),
+          exerciseLogs: exerciseStates.map((es) => ({
+            exerciseName: es.exerciseName,
+            setsCompleted: es.setsLog.length,
+            repsCompleted: es.setsLog.map((s) => s.reps).join(','),
+            weightUsed: es.setsLog.map((s) => s.weight).join(','),
+            setsLog: es.setsLog.map((s) => ({ reps: s.reps, weight: s.weight, restTime: s.restTime })),
+            warmupLog: es.hasWarmup ? es.warmupLog.map((w) => ({
+              reps: w.reps, weight: w.weight, weightUnit: w.weightUnit, restTime: w.restTime,
+            })) : null,
+          })),
           notes: notes || null,
         }),
       });
@@ -127,12 +169,18 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
           <Link href="/aluno/treinos">
             <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
-          <div>
+          <div className="flex-1">
             <h1 className="font-display text-2xl font-bold tracking-tight">{workout?.workoutName ?? 'Carregando...'}</h1>
             <p className="text-muted-foreground text-sm mt-1">
               {workout?.professor?.user?.name ? `Prof. ${workout.professor.user.name}` : ''}
             </p>
           </div>
+          {totalCount > 0 && (
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Progresso</p>
+              <p className="text-sm font-bold text-primary">{completedCount}/{totalCount}</p>
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -141,105 +189,129 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
           <div className="text-center py-12 text-muted-foreground">Treino não encontrado.</div>
         ) : (
           <>
-            {/* Exercises */}
-            <div className="space-y-4">
-              {(workout?.exercises ?? []).map((ex: any, i: number) => {
-                const log = exerciseLogs[i];
-                return (
-                  <div key={ex?.id ?? i} className={`bg-card rounded-xl p-5 shadow-[var(--shadow-md)] transition-all ${
-                    log?.completed ? 'ring-2 ring-emerald-500/30 bg-emerald-50/5' : ''
-                  }`}>
-                    <div className="flex items-start gap-4">
-                      <div className="pt-1">
-                        <Checkbox
-                          checked={log?.completed ?? false}
-                          onCheckedChange={(checked: any) => updateLog(i, 'completed', !!checked)}
-                        />
-                      </div>
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className={`font-medium ${log?.completed ? 'line-through text-muted-foreground' : ''}`}>
-                              {ex?.exerciseName ?? 'Exercício'}
-                            </p>
-                            <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
-                              <span>{ex?.sets ?? 0} séries × {ex?.reps ?? '-'} reps</span>
-                              {ex?.suggestedWeight && <span className="flex items-center gap-1"><Weight className="h-3 w-3" />{ex.suggestedWeight}</span>}
-                              {ex?.restTime && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{ex.restTime}</span>}
-                            </div>
-                            {ex?.notes && <p className="text-xs text-muted-foreground mt-1 italic">{ex.notes}</p>}
-                          </div>
-                          {log?.completed && <CheckCircle className="h-5 w-5 text-emerald-500" />}
-                        </div>
-
-                        {/* Warmup section */}
-                        {ex?.hasWarmup && (
-                          <div className="bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-800/30 rounded-lg p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs font-medium text-orange-700 dark:text-orange-400 flex items-center gap-1">
-                                <Flame className="h-3 w-3" /> Aquecimento — {ex.warmupSets ?? 0} séries × {ex.warmupReps ?? '-'} reps
-                                {ex.warmupWeight && <span className="ml-1">({ex.warmupWeight})</span>}
-                              </p>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-orange-600 dark:text-orange-400">{log?.warmupCompleted ? 'Feito' : 'Pendente'}</span>
-                                <Checkbox
-                                  checked={log?.warmupCompleted ?? false}
-                                  onCheckedChange={(checked: any) => updateLog(i, 'warmupCompleted', !!checked)}
-                                />
-                              </div>
-                            </div>
-                            {log?.warmupCompleted && (
-                              <div className="grid grid-cols-3 gap-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs text-orange-700 dark:text-orange-400">Séries</Label>
-                                  <Input type="number" min={0} value={log?.warmupSetsCompleted ?? 0}
-                                    onChange={(e: any) => updateLog(i, 'warmupSetsCompleted', parseInt(e.target.value) || 0)}
-                                    className="h-7 text-xs" />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs text-orange-700 dark:text-orange-400">Reps</Label>
-                                  <Input value={log?.warmupRepsCompleted ?? ''}
-                                    onChange={(e: any) => updateLog(i, 'warmupRepsCompleted', e.target.value)}
-                                    className="h-7 text-xs" />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs text-orange-700 dark:text-orange-400">Carga</Label>
-                                  <Input value={log?.warmupWeightUsed ?? ''}
-                                    onChange={(e: any) => updateLog(i, 'warmupWeightUsed', e.target.value)}
-                                    placeholder="kg" className="h-7 text-xs" />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Log inputs */}
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="space-y-1">
-                            <Label className="text-xs">Séries feitas</Label>
-                            <Input type="number" min={0} value={log?.setsCompleted ?? 0}
-                              onChange={(e: any) => updateLog(i, 'setsCompleted', parseInt(e.target.value) || 0)}
-                              className="h-8 text-sm" />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Reps feitas</Label>
-                            <Input value={log?.repsCompleted ?? ''}
-                              onChange={(e: any) => updateLog(i, 'repsCompleted', e.target.value)}
-                              className="h-8 text-sm" />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Carga usada</Label>
-                            <Input value={log?.weightUsed ?? ''}
-                              onChange={(e: any) => updateLog(i, 'weightUsed', e.target.value)}
-                              placeholder="kg" className="h-8 text-sm" />
-                          </div>
-                        </div>
+            {exerciseStates.map((es, i) => {
+              const ex = workout?.exercises?.[i];
+              const allExSetsCompleted = es.setsLog.every((s) => s.completed) &&
+                (!es.hasWarmup || es.warmupLog.every((w) => w.completed));
+              return (
+                <div key={ex?.id ?? i} className={`bg-card rounded-xl p-5 shadow-[var(--shadow-md)] transition-all space-y-4 ${
+                  allExSetsCompleted ? 'ring-2 ring-emerald-500/30 bg-emerald-50/5' : ''
+                }`}>
+                  {/* Exercise header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{i + 1}</span>
+                      <div>
+                        <p className={`font-medium ${allExSetsCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                          {es.exerciseName}
+                        </p>
+                        {ex?.notes && <p className="text-xs text-muted-foreground italic">{ex.notes}</p>}
                       </div>
                     </div>
+                    {allExSetsCompleted && <CheckCircle className="h-5 w-5 text-emerald-500" />}
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* Warmup sets */}
+                  {es.hasWarmup && es.warmupLog.length > 0 && (
+                    <div className="bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-800/30 rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-medium text-orange-700 dark:text-orange-400 flex items-center gap-1">
+                        <Flame className="h-3 w-3" /> Aquecimento ({es.warmupLog.filter((w) => w.completed).length}/{es.warmupLog.length})
+                      </p>
+                      {es.warmupLog.map((ws, wi) => (
+                        <div key={wi} className={`rounded-md p-2.5 space-y-1.5 transition-all ${
+                          ws.completed ? 'bg-orange-100/50 dark:bg-orange-900/20' : 'bg-white/50 dark:bg-background/30'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded bg-orange-200/50 dark:bg-orange-800/30 flex items-center justify-center text-[10px] font-bold text-orange-700 dark:text-orange-400">{wi + 1}</span>
+                              <span className="text-xs text-orange-600 dark:text-orange-400">
+                                {ws.reps} reps • {ws.weight}{ws.weightUnit === 'percent' ? '% da carga' : 'kg'}
+                                {ws.restTime && <span> • <Clock className="h-3 w-3 inline" /> {ws.restTime}</span>}
+                              </span>
+                            </div>
+                            <Checkbox
+                              checked={ws.completed}
+                              onCheckedChange={(checked: any) => updateWarmupLog(i, wi, 'completed', !!checked)}
+                            />
+                          </div>
+                          {ws.completed && (
+                            <div className="grid grid-cols-3 gap-2 pl-7">
+                              <div className="space-y-0.5">
+                                <Label className="text-[10px] text-orange-600 dark:text-orange-400">Reps feitas</Label>
+                                <Input value={ws.reps}
+                                  onChange={(e: any) => updateWarmupLog(i, wi, 'reps', e.target.value)}
+                                  className="h-7 text-xs" />
+                              </div>
+                              <div className="space-y-0.5">
+                                <Label className="text-[10px] text-orange-600 dark:text-orange-400">Carga ({ws.weightUnit === 'percent' ? '%' : 'kg'})</Label>
+                                <Input value={ws.weight}
+                                  onChange={(e: any) => updateWarmupLog(i, wi, 'weight', e.target.value)}
+                                  className="h-7 text-xs" />
+                              </div>
+                              <div className="space-y-0.5">
+                                <Label className="text-[10px] text-orange-600 dark:text-orange-400">Descanso</Label>
+                                <Input value={ws.restTime}
+                                  onChange={(e: any) => updateWarmupLog(i, wi, 'restTime', e.target.value)}
+                                  className="h-7 text-xs" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Work sets */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <Dumbbell className="h-3 w-3" /> Séries de trabalho ({es.setsLog.filter((s) => s.completed).length}/{es.setsLog.length})
+                    </p>
+                    {es.setsLog.map((set, si) => (
+                      <div key={si} className={`rounded-md p-2.5 space-y-1.5 transition-all ${
+                        set.completed ? 'bg-emerald-50/50 dark:bg-emerald-950/20' : 'bg-muted/30'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{si + 1}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {set.reps} reps
+                              {set.weight && <span> • <Weight className="h-3 w-3 inline" /> {set.weight}</span>}
+                              {set.restTime && <span> • <Clock className="h-3 w-3 inline" /> {set.restTime}</span>}
+                            </span>
+                          </div>
+                          <Checkbox
+                            checked={set.completed}
+                            onCheckedChange={(checked: any) => updateSetLog(i, si, 'completed', !!checked)}
+                          />
+                        </div>
+                        {set.completed && (
+                          <div className="grid grid-cols-3 gap-2 pl-7">
+                            <div className="space-y-0.5">
+                              <Label className="text-[10px]">Reps feitas</Label>
+                              <Input value={set.reps}
+                                onChange={(e: any) => updateSetLog(i, si, 'reps', e.target.value)}
+                                className="h-7 text-xs" />
+                            </div>
+                            <div className="space-y-0.5">
+                              <Label className="text-[10px]">Carga usada</Label>
+                              <Input value={set.weight}
+                                onChange={(e: any) => updateSetLog(i, si, 'weight', e.target.value)}
+                                placeholder="kg" className="h-7 text-xs" />
+                            </div>
+                            <div className="space-y-0.5">
+                              <Label className="text-[10px]">Descanso</Label>
+                              <Input value={set.restTime}
+                                onChange={(e: any) => updateSetLog(i, si, 'restTime', e.target.value)}
+                                className="h-7 text-xs" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
 
             {/* Notes & Complete */}
             <div className="bg-card rounded-xl p-5 shadow-[var(--shadow-md)] space-y-4">
@@ -255,7 +327,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
               </Button>
               {!allCompleted && (
                 <p className="text-xs text-center text-muted-foreground">
-                  Marque todos os exercícios como concluídos para finalizar.
+                  Marque todas as séries (aquecimento + trabalho) como concluídas para finalizar.
                 </p>
               )}
             </div>
