@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DashboardShell } from '@/components/shared/dashboard-shell';
+import { MediaGallery } from '@/components/shared/media-lightbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -99,20 +100,13 @@ export function TreinoDetail({ id }: { id: string }) {
                           <p className="font-medium">{ex?.exerciseName ?? 'Exercício'}</p>
                           {ex?.notes && <p className="text-xs text-muted-foreground mt-0.5 italic">{ex.notes}</p>}
                         </div>
-                        {(() => {
-                          const files = ex?.mediaFiles && Array.isArray(ex.mediaFiles) && ex.mediaFiles.length > 0
-                            ? ex.mediaFiles
-                            : ex?.mediaUrl ? [{ url: ex.mediaUrl, type: ex.mediaType }] : [];
-                          return files.length > 0 ? (
-                            <div className="flex gap-1 shrink-0">
-                              {files.map((m: any, mi: number) => (
-                                m.type === 'image'
-                                  ? <img key={mi} src={m.url} alt={`${ex.exerciseName} ${mi + 1}`} className="h-14 w-14 rounded-lg object-cover" />
-                                  : <video key={mi} src={m.url} className="h-14 w-14 rounded-lg object-cover" />
-                              ))}
-                            </div>
-                          ) : null;
-                        })()}
+                        <MediaGallery
+                          files={
+                            ex?.mediaFiles && Array.isArray(ex.mediaFiles) && ex.mediaFiles.length > 0
+                              ? ex.mediaFiles
+                              : ex?.mediaUrl ? [{ url: ex.mediaUrl, type: ex.mediaType }] : []
+                          }
+                        />
                       </div>
 
                       {/* Warmup sets */}

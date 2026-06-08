@@ -48,16 +48,14 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user, trigger }: any) {
       if (user) {
-        token.userType = user.userType ?? null;
-        token.professorId = user.professorId ?? null;
-        token.studentId = user.studentId ?? null;
         token.userId = user.id;
       }
-      // Refresh user data on every token refresh to pick up onboarding changes
-      if (trigger === 'update' || (!token.userType && token.userId)) {
+      // Always refresh user data from DB on sign-in, session update, or missing data
+      // The adapter returns User without relations, so we must fetch professorId/studentId from DB
+      if (user || trigger === 'update' || !token.userType || !token.studentId && !token.professorId) {
         try {
           const dbUser = await prisma.user.findUnique({
-            where: { id: token.userId as string },
+            where: { id: (token.userId ?? (user as any)?.id) as string },
             include: { professor: true, student: true },
           });
           if (dbUser) {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/shared/dashboard-shell';
+import { MediaGallery } from '@/components/shared/media-lightbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -256,20 +257,16 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                           {es.exerciseName}
                         </p>
                         {ex?.notes && <p className="text-xs text-muted-foreground italic">{ex.notes}</p>}
-                        {(() => {
-                          const files = ex?.mediaFiles && Array.isArray(ex.mediaFiles) && ex.mediaFiles.length > 0
-                            ? ex.mediaFiles
-                            : ex?.mediaUrl ? [{ url: ex.mediaUrl, type: ex.mediaType }] : [];
-                          return files.length > 0 ? (
-                            <div className="mt-2 flex gap-2 flex-wrap">
-                              {files.map((m: any, mi: number) => (
-                                m.type === 'image'
-                                  ? <img key={mi} src={m.url} alt={`${es.exerciseName} ${mi + 1}`} className="h-24 rounded-lg object-cover" />
-                                  : <video key={mi} src={m.url} className="h-24 rounded-lg" controls />
-                              ))}
-                            </div>
-                          ) : null;
-                        })()}
+                        <div className="mt-2">
+                          <MediaGallery
+                            files={
+                              ex?.mediaFiles && Array.isArray(ex.mediaFiles) && ex.mediaFiles.length > 0
+                                ? ex.mediaFiles
+                                : ex?.mediaUrl ? [{ url: ex.mediaUrl, type: ex.mediaType }] : []
+                            }
+                            thumbnailClass="h-20 w-20"
+                          />
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

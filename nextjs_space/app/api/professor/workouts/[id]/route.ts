@@ -31,6 +31,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const body = await request.json();
     const { name, category, description, exercises } = body ?? {};
 
+    // Get old workout name before updating (for propagation matching)
+    const oldWorkout = await prisma.workoutTemplate.findFirst({
+      where: { id: params?.id, professorId: session.user.professorId },
+      select: { name: true },
+    });
+    const oldName = oldWorkout?.name;
+
     // Delete old exercises and recreate
     await prisma.workoutTemplateExercise.deleteMany({
       where: { templateId: params?.id },
@@ -66,6 +73,55 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       },
       include: { exercises: { orderBy: { order: 'asc' } } },
     });
+
+    // Propagate updates to active assigned workouts from this template
+    try {
+      // Match assigned workouts by old name (in case name was changed)
+      const matchName = oldName || workout.name;
+      const assignedWorkouts = await prisma.assignedWorkout.findMany({
+        where: {
+          professorId: session.user.professorId,
+          workoutName: matchName,
+          status: 'active',
+          isPersonal: false,
+        },
+        select: { id: true },
+      });
+
+      for (const aw of assignedWorkouts) {
+        // Update workout name if changed
+        if (oldName && oldName !== workout.name) {
+          await prisma.assignedWorkout.update({
+            where: { id: aw.id },
+            data: { workoutName: workout.name },
+          });
+        }
+        // Delete old exercises and recreate with updated data
+        await prisma.assignedWorkoutExercise.deleteMany({ where: { assignedWorkoutId: aw.id } });
+        await prisma.assignedWorkoutExercise.createMany({
+          data: workout.exercises.map((ex: any) => ({
+            assignedWorkoutId: aw.id,
+            exerciseName: ex.exerciseName,
+            sets: ex.sets,
+            reps: ex.reps,
+            suggestedWeight: ex.suggestedWeight,
+            restTime: ex.restTime,
+            notes: ex.notes,
+            order: ex.order,
+            hasWarmup: ex.hasWarmup,
+            setsConfig: ex.setsConfig,
+            warmupConfig: ex.warmupConfig,
+            mediaUrl: ex.mediaUrl,
+            mediaType: ex.mediaType,
+            mediaPath: ex.mediaPath,
+            mediaFiles: ex.mediaFiles,
+          })),
+        });
+      }
+    } catch (propagateError: any) {
+      console.error('Error propagating workout update to assigned workouts:', propagateError);
+      // Non-fatal: template was updated successfully, propagation failed
+    }
 
     return NextResponse.json(workout);
   } catch (error: any) {
