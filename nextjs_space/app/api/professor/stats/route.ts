@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getPlanLimits } from '@/lib/plans';
 
 export async function GET() {
   try {
@@ -18,9 +19,17 @@ export async function GET() {
       where: { professorId: session.user.professorId },
     });
 
+    const planInfo = getPlanLimits(professor?.plan ?? 'free');
+
+    const activeStudents = await prisma.studentProfessorLink.count({
+      where: { professorId: session.user.professorId, status: 'active' },
+    });
+
     return NextResponse.json({
       plan: professor?.plan ?? 'free',
-      maxStudents: professor?.maxStudents ?? 2,
+      planName: planInfo.name,
+      maxStudents: planInfo.maxStudents,
+      activeStudents,
       workoutCount,
     });
   } catch (error: any) {

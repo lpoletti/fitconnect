@@ -7,10 +7,11 @@ import { WorkoutForm } from '@/components/professor/workout-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
   LayoutDashboard, Users, ClipboardList, ArrowLeft,
-  ClipboardCheck, Plus, Dumbbell
+  ClipboardCheck, Plus, Dumbbell, Check, X
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -24,11 +25,10 @@ export function AtribuirTreino({ studentId }: { studentId: string }) {
   const router = useRouter();
   const [mode, setMode] = useState<'select' | 'create'>('select');
   const [workouts, setWorkouts] = useState<any[]>([]);
-  const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exercises, setExercises] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/professor/workouts')
@@ -38,44 +38,66 @@ export function AtribuirTreino({ studentId }: { studentId: string }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const selectTemplate = (w: any) => {
-    setSelectedWorkout(w);
-    setExercises((w?.exercises ?? []).map((ex: any) => ({
-      exerciseName: ex?.exerciseName ?? '',
-      sets: ex?.sets ?? 3,
-      reps: ex?.reps ?? '12',
-      suggestedWeight: ex?.suggestedWeight ?? '',
-      restTime: ex?.restTime ?? '',
-      notes: ex?.notes ?? '',
-    })));
+  const toggleWorkout = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
-  const assignFromTemplate = async () => {
-    if (!selectedWorkout || exercises.length === 0) {
-      toast.error('Selecione um treino.');
+  const selectAll = () => {
+    if (selectedIds.size === workouts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(workouts.map(w => w.id)));
+    }
+  };
+
+  const assignFromTemplates = async () => {
+    if (selectedIds.size === 0) {
+      toast.error('Selecione pelo menos um treino.');
       return;
     }
     setSaving(true);
     try {
+      const selectedWorkouts = workouts.filter(w => selectedIds.has(w.id));
+      const payload = {
+        studentId,
+        workouts: selectedWorkouts.map(w => ({
+          workoutName: w.name,
+          startDate,
+          exercises: (w.exercises ?? []).map((ex: any) => ({
+            exerciseName: ex?.exerciseName ?? '',
+            sets: ex?.sets ?? 3,
+            reps: ex?.reps ?? '12',
+            suggestedWeight: ex?.suggestedWeight ?? '',
+            restTime: ex?.restTime ?? '',
+            notes: ex?.notes ?? '',
+            hasWarmup: ex?.hasWarmup ?? false,
+            setsConfig: ex?.setsConfig ?? null,
+            warmupConfig: ex?.warmupConfig ?? null,
+            mediaUrl: ex?.mediaUrl ?? null,
+            mediaType: ex?.mediaType ?? null,
+            mediaPath: ex?.mediaPath ?? null,
+          })),
+        })),
+      };
       const res = await fetch('/api/professor/assign-workout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentId,
-          workoutName: selectedWorkout.name,
-          startDate,
-          exercises,
-        }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
-        toast.success('Treino atribuído com sucesso!');
+        toast.success(`${selectedIds.size} treino(s) atribuído(s) com sucesso!`);
         router.push('/professor/alunos');
       } else {
         const d = await res.json();
         toast.error(d?.error ?? 'Erro ao atribuir.');
       }
     } catch {
-      toast.error('Erro ao atribuir treino.');
+      toast.error('Erro ao atribuir treinos.');
     } finally {
       setSaving(false);
     }
@@ -117,7 +139,7 @@ export function AtribuirTreino({ studentId }: { studentId: string }) {
           </Link>
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight">Atribuir Treino</h1>
-            <p className="text-muted-foreground text-sm mt-1">Escolha ou crie um treino para o aluno.</p>
+            <p className="text-muted-foreground text-sm mt-1">Escolha um ou mais treinos para o aluno.</p>
           </div>
         </div>
 
@@ -137,7 +159,7 @@ export function AtribuirTreino({ studentId }: { studentId: string }) {
             }`}>
             <ClipboardCheck className="h-4 w-4" /> Do Repositório
           </button>
-          <button type="button" onClick={() => { setMode('create'); setSelectedWorkout(null); }}
+          <button type="button" onClick={() => setMode('create')}
             className={`flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all ${
               mode === 'create' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}>
@@ -157,33 +179,51 @@ export function AtribuirTreino({ studentId }: { studentId: string }) {
               </div>
             ) : (
               <>
-                <div className="grid gap-3">
-                  {(workouts ?? []).map((w: any) => (
-                    <div key={w?.id}
-                      onClick={() => selectTemplate(w)}
-                      className={`bg-card rounded-xl p-4 shadow-[var(--shadow-sm)] cursor-pointer transition-all border-2 ${
-                        selectedWorkout?.id === w?.id ? 'border-primary' : 'border-transparent hover:shadow-[var(--shadow-md)]'
-                      }`}>
-                      <p className="font-medium">{w?.name ?? 'Sem nome'}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{(w?.exercises ?? []).length} exercício(s)</p>
-                    </div>
-                  ))}
+                {/* Select all + counter */}
+                <div className="flex items-center justify-between">
+                  <button type="button" onClick={selectAll}
+                    className="text-sm text-primary hover:underline font-medium flex items-center gap-1">
+                    {selectedIds.size === workouts.length ? (
+                      <><X className="h-3.5 w-3.5" /> Desmarcar todos</>
+                    ) : (
+                      <><Check className="h-3.5 w-3.5" /> Selecionar todos</>
+                    )}
+                  </button>
+                  {selectedIds.size > 0 && (
+                    <Badge variant="secondary">{selectedIds.size} selecionado(s)</Badge>
+                  )}
                 </div>
-                {selectedWorkout && (
-                  <div className="bg-card rounded-xl p-5 shadow-[var(--shadow-md)] space-y-3">
-                    <h3 className="font-display font-semibold">Exercícios do treino selecionado</h3>
-                    <div className="divide-y divide-border">
-                      {exercises.map((ex: any, i: number) => (
-                        <div key={i} className="py-2 text-sm">
-                          <span className="font-medium">{ex?.exerciseName}</span> — {ex?.sets}x{ex?.reps}
-                          {ex?.suggestedWeight ? ` (${ex.suggestedWeight})` : ''}
+
+                <div className="grid gap-3">
+                  {(workouts ?? []).map((w: any) => {
+                    const isSelected = selectedIds.has(w.id);
+                    return (
+                      <div key={w?.id}
+                        onClick={() => toggleWorkout(w.id)}
+                        className={`bg-card rounded-xl p-4 shadow-[var(--shadow-sm)] cursor-pointer transition-all border-2 flex items-center gap-3 ${
+                          isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:shadow-[var(--shadow-md)]'
+                        }`}>
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected ? 'bg-primary border-primary' : 'border-muted-foreground/30'
+                        }`}>
+                          {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                         </div>
-                      ))}
-                    </div>
-                    <Button onClick={assignFromTemplate} disabled={saving} className="w-full">
-                      {saving ? 'Atribuindo...' : 'Atribuir Treino'}
-                    </Button>
-                  </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{w?.name ?? 'Sem nome'}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {(w?.exercises ?? []).length} exercício(s)
+                            {w?.category ? ` • ${w.category}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {selectedIds.size > 0 && (
+                  <Button onClick={assignFromTemplates} disabled={saving} className="w-full" size="lg">
+                    {saving ? 'Atribuindo...' : `Atribuir ${selectedIds.size} Treino(s)`}
+                  </Button>
                 )}
               </>
             )}

@@ -42,10 +42,12 @@ export function WorkoutCalendar() {
 
   useEffect(() => {
     const { year, month } = currentMonth;
-    const from = new Date(year, month, 1).toISOString();
-    const to = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+    // Use YYYY-MM-DD strings to avoid timezone offset issues
+    const fromStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const toStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
     setLoading(true);
-    fetch(`/api/aluno/history?from=${from}&to=${to}`)
+    fetch(`/api/aluno/history?from=${fromStr}&to=${toStr}`)
       .then((r: any) => r.ok ? r.json() : null)
       .then((d: any) => setLogs(d?.logs ?? []))
       .catch(() => toast.error('Erro ao carregar calendário.'))
@@ -55,7 +57,9 @@ export function WorkoutCalendar() {
   const logsByDate = useMemo(() => {
     const map: Record<string, WorkoutLogEntry[]> = {};
     for (const log of logs) {
-      const dateKey = new Date(log.completedAt).toISOString().split('T')[0];
+      // Use local date to group (avoids UTC offset shifting the day)
+      const d = new Date(log.completedAt);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (!map[dateKey]) map[dateKey] = [];
       map[dateKey].push(log);
     }
@@ -127,10 +131,11 @@ export function WorkoutCalendar() {
   const goToToday = () => {
     const now = new Date();
     setCurrentMonth({ year: now.getFullYear(), month: now.getMonth() });
-    setSelectedDate(now.toISOString().split('T')[0]);
+    setSelectedDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
   };
 
-  const todayKey = new Date().toISOString().split('T')[0];
+  const nowLocal = new Date();
+  const todayKey = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
   const selectedLogs = selectedDate ? (logsByDate[selectedDate] ?? []) : [];
 
   // Monthly stats

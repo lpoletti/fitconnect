@@ -17,8 +17,9 @@ export async function GET(request: NextRequest) {
     const where: any = { studentId: session.user.studentId };
     if (from || to) {
       where.completedAt = {};
-      if (from) where.completedAt.gte = new Date(from);
-      if (to) where.completedAt.lte = new Date(to + 'T23:59:59Z');
+      // Use start of day / end of day in local context (dates come as YYYY-MM-DD)
+      if (from) where.completedAt.gte = new Date(from + 'T00:00:00');
+      if (to) where.completedAt.lte = new Date(to + 'T23:59:59.999');
     }
 
     const logs = await prisma.workoutLog.findMany({

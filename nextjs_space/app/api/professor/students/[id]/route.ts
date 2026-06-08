@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getPlanLimits } from '@/lib/plans';
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -24,8 +25,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       const professor = await prisma.professor.findUnique({
         where: { id: session.user.professorId },
       });
-      if (activeCount >= (professor?.maxStudents ?? 2)) {
-        return NextResponse.json({ error: 'Limite de alunos ativos atingido.' }, { status: 403 });
+      const planInfo = getPlanLimits(professor?.plan ?? 'free');
+      if (activeCount >= planInfo.maxStudents) {
+        return NextResponse.json({
+          error: `Limite de ${planInfo.maxStudents} alunos ativos atingido no plano ${planInfo.name}. Faça upgrade para adicionar mais alunos.`,
+          limitReached: true,
+        }, { status: 403 });
       }
     }
 
