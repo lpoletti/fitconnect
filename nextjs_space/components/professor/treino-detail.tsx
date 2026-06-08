@@ -93,10 +93,19 @@ export function TreinoDetail({ id }: { id: string }) {
                     <div key={ex?.id ?? i} className="p-4 space-y-3">
                       <div className="flex items-center gap-3">
                         <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{i + 1}</span>
-                        <div>
+                        <div className="flex-1">
                           <p className="font-medium">{ex?.exerciseName ?? 'Exercício'}</p>
                           {ex?.notes && <p className="text-xs text-muted-foreground mt-0.5 italic">{ex.notes}</p>}
                         </div>
+                        {ex?.mediaUrl && (
+                          <div className="shrink-0">
+                            {ex.mediaType === 'image' ? (
+                              <img src={ex.mediaUrl} alt={ex.exerciseName} className="h-16 w-16 rounded-lg object-cover" />
+                            ) : (
+                              <video src={ex.mediaUrl} className="h-16 w-16 rounded-lg object-cover" />
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Warmup sets */}

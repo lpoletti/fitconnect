@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Dumbbell, Flame, Copy } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Flame, Upload, Image, Video, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SetConfig {
   reps: string;
@@ -27,6 +28,10 @@ interface Exercise {
   setsConfig: SetConfig[];
   hasWarmup: boolean;
   warmupConfig: WarmupSetConfig[];
+  mediaUrl: string;
+  mediaType: string;
+  mediaPath: string;
+  uploading?: boolean;
 }
 
 interface WorkoutFormProps {
@@ -87,6 +92,9 @@ function parseExercise(e: any): Exercise {
     setsConfig: setsConfig.length > 0 ? setsConfig : [defaultSet()],
     hasWarmup: e?.hasWarmup ?? false,
     warmupConfig: warmupConfig.length > 0 ? warmupConfig : [defaultWarmupSet()],
+    mediaUrl: e?.mediaUrl ?? '',
+    mediaType: e?.mediaType ?? '',
+    mediaPath: e?.mediaPath ?? '',
   };
 }
 
@@ -96,6 +104,9 @@ const defaultExercise = (): Exercise => ({
   setsConfig: [defaultSet(), defaultSet(), defaultSet()],
   hasWarmup: false,
   warmupConfig: [defaultWarmupSet()],
+  mediaUrl: '',
+  mediaType: '',
+  mediaPath: '',
 });
 
 export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loading = false }: WorkoutFormProps) {
@@ -159,6 +170,71 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
     }
   };
 
+  const handleMediaUpload = async (exIdx: number, file: File) => {
+    const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(file.type.startsWith('video/') ? 'Vídeo: máx 100MB' : 'Imagem: máx 10MB');
+      return;
+    }
+    const updated = [...exercises];
+    updated[exIdx] = { ...updated[exIdx], uploading: true };
+    setExercises(updated);
+
+    try {
+      const res = await fetch('/api/upload/presigned', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: file.name, contentType: file.type, fileSize: file.size }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err?.error ?? 'Erro ao gerar URL');
+      }
+      const { uploadUrl, cloud_storage_path, mediaType } = await res.json();
+
+      // Check if content-disposition is in signed headers
+      const url = new URL(uploadUrl);
+      const signedHeaders = url.searchParams.get('X-Amz-SignedHeaders') ?? '';
+      const headers: Record<string, string> = { 'Content-Type': file.type };
+      if (signedHeaders.includes('content-disposition')) {
+        headers['Content-Disposition'] = 'attachment';
+      }
+
+      const uploadRes = await fetch(uploadUrl, { method: 'PUT', headers, body: file });
+      if (!uploadRes.ok) throw new Error('Erro no upload');
+
+      // Build public URL
+      const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
+      const region = process.env.NEXT_PUBLIC_AWS_REGION;
+      let publicUrl = '';
+      if (bucketName && region) {
+        publicUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+      }
+
+      const updated2 = [...exercises];
+      updated2[exIdx] = {
+        ...updated2[exIdx],
+        mediaUrl: publicUrl || cloud_storage_path,
+        mediaType,
+        mediaPath: cloud_storage_path,
+        uploading: false,
+      };
+      setExercises(updated2);
+      toast.success('Mídia enviada com sucesso!');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Erro no upload');
+      const updated2 = [...exercises];
+      updated2[exIdx] = { ...updated2[exIdx], uploading: false };
+      setExercises(updated2);
+    }
+  };
+
+  const removeMedia = (exIdx: number) => {
+    const updated = [...exercises];
+    updated[exIdx] = { ...updated[exIdx], mediaUrl: '', mediaType: '', mediaPath: '' };
+    setExercises(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit({ name, category, description, exercises });
@@ -216,6 +292,50 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
                 <Label className="text-xs">Observações</Label>
                 <Input value={ex.notes} onChange={(e: any) => updateExercise(i, 'notes', e.target.value)}
                   placeholder="Observações sobre o exercício" />
+              </div>
+
+              {/* Media upload */}
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs flex items-center gap-1">
+                  <Upload className="h-3 w-3" /> Foto/Vídeo de Execução (opcional)
+                </Label>
+                {ex.mediaUrl ? (
+                  <div className="relative inline-block">
+                    {ex.mediaType === 'image' ? (
+                      <img src={ex.mediaUrl} alt="Exercício" className="h-24 rounded-lg object-cover" />
+                    ) : (
+                      <video src={ex.mediaUrl} className="h-24 rounded-lg" controls />
+                    )}
+                    <button type="button" onClick={() => removeMedia(i)}
+                      className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/50 transition-colors ${
+                    ex.uploading ? 'opacity-50 pointer-events-none' : ''
+                  }`}>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                      onChange={(e: any) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleMediaUpload(i, file);
+                        e.target.value = '';
+                      }}
+                    />
+                    {ex.uploading ? (
+                      <span className="text-xs text-muted-foreground">Enviando...</span>
+                    ) : (
+                      <>
+                        <Image className="h-4 w-4 text-muted-foreground" />
+                        <Video className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Foto (10MB) ou Vídeo (100MB)</span>
+                      </>
+                    )}
+                  </label>
+                )}
               </div>
             </div>
 

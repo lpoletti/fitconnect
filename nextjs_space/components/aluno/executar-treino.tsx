@@ -11,12 +11,13 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import {
   LayoutDashboard, ClipboardList, History, ArrowLeft,
-  Dumbbell, Clock, Weight, CheckCircle, Trophy, Flame
+  Dumbbell, Clock, Weight, CheckCircle, Trophy, Flame, CheckCheck, Calendar as CalendarIcon
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
   { label: 'Meus Treinos', href: '/aluno/treinos', icon: ClipboardList },
+  { label: 'Calendário', href: '/aluno/calendario', icon: CalendarIcon },
   { label: 'Histórico', href: '/aluno/historico', icon: History },
 ];
 
@@ -114,6 +115,25 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
     setExerciseStates(updated);
   };
 
+  const markAllCompleted = () => {
+    setExerciseStates(prev => prev.map((es) => ({
+      ...es,
+      setsLog: es.setsLog.map((s) => ({ ...s, completed: true })),
+      warmupLog: es.warmupLog.map((w) => ({ ...w, completed: true })),
+    })));
+    toast.success('Todas as séries marcadas como concluídas!');
+  };
+
+  const markExerciseCompleted = (exIdx: number) => {
+    const updated = [...exerciseStates];
+    updated[exIdx] = {
+      ...updated[exIdx],
+      setsLog: updated[exIdx].setsLog.map((s) => ({ ...s, completed: true })),
+      warmupLog: updated[exIdx].warmupLog.map((w) => ({ ...w, completed: true })),
+    };
+    setExerciseStates(updated);
+  };
+
   const allCompleted = exerciseStates.length > 0 && exerciseStates.every((es) => {
     const setsOk = es.setsLog.every((s) => s.completed);
     const warmupOk = !es.hasWarmup || es.warmupLog.every((w) => w.completed);
@@ -176,9 +196,16 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
             </p>
           </div>
           {totalCount > 0 && (
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Progresso</p>
-              <p className="text-sm font-bold text-primary">{completedCount}/{totalCount}</p>
+            <div className="flex items-center gap-3">
+              {!allCompleted && (
+                <Button variant="outline" size="sm" onClick={markAllCompleted} className="gap-1.5 text-xs">
+                  <CheckCheck className="h-3.5 w-3.5" /> Marcar Todas
+                </Button>
+              )}
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Progresso</p>
+                <p className="text-sm font-bold text-primary">{completedCount}/{totalCount}</p>
+              </div>
             </div>
           )}
         </div>
@@ -199,16 +226,33 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                 }`}>
                   {/* Exercise header */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{i + 1}</span>
-                      <div>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
                         <p className={`font-medium ${allExSetsCompleted ? 'line-through text-muted-foreground' : ''}`}>
                           {es.exerciseName}
                         </p>
                         {ex?.notes && <p className="text-xs text-muted-foreground italic">{ex.notes}</p>}
+                        {ex?.mediaUrl && (
+                          <div className="mt-2">
+                            {ex.mediaType === 'image' ? (
+                              <img src={ex.mediaUrl} alt={es.exerciseName} className="h-28 rounded-lg object-cover" />
+                            ) : (
+                              <video src={ex.mediaUrl} className="h-28 rounded-lg" controls />
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {allExSetsCompleted && <CheckCircle className="h-5 w-5 text-emerald-500" />}
+                    <div className="flex items-center gap-2">
+                      {!allExSetsCompleted && (
+                        <Button variant="ghost" size="sm" onClick={() => markExerciseCompleted(i)}
+                          className="h-7 px-2 text-[10px] gap-1 text-muted-foreground hover:text-primary">
+                          <CheckCheck className="h-3 w-3" /> Todas
+                        </Button>
+                      )}
+                      {allExSetsCompleted && <CheckCircle className="h-5 w-5 text-emerald-500" />}
+                    </div>
                   </div>
 
                   {/* Warmup sets */}

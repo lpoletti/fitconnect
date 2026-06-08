@@ -10,12 +10,13 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   LayoutDashboard, ClipboardList, History, Trophy,
-  Calendar, CheckCircle, ChevronDown, ChevronUp, Filter
+  Calendar as CalendarIcon, CheckCircle, ChevronDown, ChevronUp, Filter
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
   { label: 'Meus Treinos', href: '/aluno/treinos', icon: ClipboardList },
+  { label: 'Calendário', href: '/aluno/calendario', icon: CalendarIcon },
   { label: 'Histórico', href: '/aluno/historico', icon: History },
 ];
 
@@ -61,7 +62,7 @@ export function AlunoHistorico() {
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <StatCard title="Total Concluídos" value={stats?.totalCompleted ?? 0} icon={Trophy} variant="success" />
-          <StatCard title="Esta Semana" value={stats?.thisWeek ?? 0} icon={Calendar} />
+          <StatCard title="Esta Semana" value={stats?.thisWeek ?? 0} icon={CalendarIcon} />
         </div>
 
         {/* Filters */}

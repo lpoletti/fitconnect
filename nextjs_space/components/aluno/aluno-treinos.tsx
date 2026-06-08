@@ -9,12 +9,13 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  LayoutDashboard, ClipboardList, History, Play, Calendar, Dumbbell
+  LayoutDashboard, ClipboardList, History, Play, Calendar as CalendarIcon, Dumbbell
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
   { label: 'Meus Treinos', href: '/aluno/treinos', icon: ClipboardList },
+  { label: 'Calendário', href: '/aluno/calendario', icon: CalendarIcon },
   { label: 'Histórico', href: '/aluno/historico', icon: History },
 ];
 
@@ -58,7 +59,7 @@ export function AlunoTreinos() {
                     <div className="flex-1">
                       <h3 className="font-display font-semibold">{w?.workoutName ?? 'Treino'}</h3>
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                        <Calendar className="h-3 w-3" />
+                        <CalendarIcon className="h-3 w-3" />
                         Início: {w?.startDate ? format(new Date(w.startDate), "dd 'de' MMM, yyyy", { locale: ptBR }) : '-'}
                       </p>
                     </div>

@@ -18,6 +18,7 @@ import {
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
   { label: 'Meus Treinos', href: '/aluno/treinos', icon: ClipboardList },
+  { label: 'Calendário', href: '/aluno/calendario', icon: Calendar },
   { label: 'Histórico', href: '/aluno/historico', icon: History },
 ];
 

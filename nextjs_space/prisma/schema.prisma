@@ -102,6 +102,9 @@ model WorkoutTemplateExercise {
   warmupWeight    String?   @map("warmup_weight")
   setsConfig      Json?     @map("sets_config")
   warmupConfig    Json?     @map("warmup_config")
+  mediaUrl        String?   @map("media_url")
+  mediaType       String?   @map("media_type")
+  mediaPath       String?   @map("media_path")
 
   template        WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
@@ -141,6 +144,9 @@ model AssignedWorkoutExercise {
   warmupWeight    String?   @map("warmup_weight")
   setsConfig      Json?     @map("sets_config")
   warmupConfig    Json?     @map("warmup_config")
+  mediaUrl        String?   @map("media_url")
+  mediaType       String?   @map("media_type")
+  mediaPath       String?   @map("media_path")
 
   assignedWorkout AssignedWorkout @relation(fields: [assignedWorkoutId], references: [id], onDelete: Cascade)
 

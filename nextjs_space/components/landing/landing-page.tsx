@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import {
   Dumbbell, Users, ClipboardList, TrendingUp, ChevronRight,
-  Smartphone, BarChart3, Shield, Zap, UserPlus, ListChecks, Activity
+  Smartphone, BarChart3, Shield, Zap, UserPlus, ListChecks, Activity,
+  Crown, Star, Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -189,8 +190,109 @@ export function LandingPage() {
         </motion.div>
       </section>
 
-      {/* CTA */}
+      {/* Planos e Preços */}
       <section className="py-20">
+        <motion.div
+          className="max-w-[1200px] mx-auto px-4"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          variants={stagger}
+        >
+          <motion.div variants={fadeUp} className="text-center mb-12">
+            <span className="text-primary font-semibold text-sm uppercase tracking-wider">Planos</span>
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mt-2">Preços simples e acessíveis</h2>
+            <p className="text-muted-foreground mt-3 max-w-lg mx-auto">Alunos usam grátis, sempre. Professores começam grátis e escalam conforme crescem.</p>
+          </motion.div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                name: 'Grátis',
+                price: 'R$ 0',
+                period: '/mês',
+                desc: 'Ideal para começar',
+                icon: Zap,
+                features: ['Até 2 alunos ativos', 'Repositório de treinos', 'Histórico de treinos', 'Acompanhamento de cargas'],
+                highlight: false,
+                cta: 'Começar Grátis',
+              },
+              {
+                name: 'Pro 10',
+                price: 'R$ 29,90',
+                period: '/mês',
+                desc: 'Para profissionais em crescimento',
+                icon: Star,
+                features: ['Até 10 alunos ativos', 'Tudo do plano Grátis', 'Upload de fotos/vídeos', 'Suporte prioritário'],
+                highlight: false,
+                cta: 'Assinar Pro 10',
+              },
+              {
+                name: 'Pro 50',
+                price: 'R$ 49,90',
+                period: '/mês',
+                desc: 'O mais popular',
+                icon: Crown,
+                features: ['Até 50 alunos ativos', 'Tudo do Pro 10', 'Relatórios avançados', 'Prioridade em novidades'],
+                highlight: true,
+                cta: 'Assinar Pro 50',
+              },
+              {
+                name: 'Pro 100',
+                price: 'R$ 79,90',
+                period: '/mês',
+                desc: 'Para grandes equipes',
+                icon: Crown,
+                features: ['Até 100 alunos ativos', 'Tudo do Pro 50', 'Múltiplos professores', 'API de integração'],
+                highlight: false,
+                cta: 'Assinar Pro 100',
+              },
+            ].map((plan: any, i: number) => (
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                className={`rounded-xl p-6 flex flex-col ${
+                  plan.highlight
+                    ? 'bg-primary text-primary-foreground shadow-[var(--shadow-lg)] ring-2 ring-primary scale-[1.02]'
+                    : 'bg-card shadow-[var(--shadow-md)]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <plan.icon className={`h-5 w-5 ${plan.highlight ? 'text-primary-foreground' : 'text-primary'}`} />
+                  <span className="font-display font-semibold text-lg">{plan.name}</span>
+                </div>
+                <div className="mb-1">
+                  <span className="font-display text-3xl font-bold">{plan.price}</span>
+                  <span className={`text-sm ${plan.highlight ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{plan.period}</span>
+                </div>
+                <p className={`text-sm mb-5 ${plan.highlight ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{plan.desc}</p>
+                <ul className="space-y-2.5 mb-6 flex-1">
+                  {plan.features.map((f: string, fi: number) => (
+                    <li key={fi} className="flex items-start gap-2 text-sm">
+                      <Check className={`h-4 w-4 mt-0.5 shrink-0 ${plan.highlight ? 'text-primary-foreground' : 'text-primary'}`} />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/signup">
+                  <Button
+                    className="w-full"
+                    variant={plan.highlight ? 'secondary' : 'default'}
+                    size="sm"
+                  >
+                    {plan.cta}
+                  </Button>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+          <motion.p variants={fadeUp} className="text-center text-muted-foreground text-sm mt-8">
+            💡 Alunos utilizam a plataforma gratuitamente, sempre. Os planos acima são exclusivos para Professores.
+          </motion.p>
+        </motion.div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 bg-muted/30">
         <motion.div
           className="max-w-[1200px] mx-auto px-4"
           initial="hidden"
