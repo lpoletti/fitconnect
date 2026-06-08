@@ -80,9 +80,10 @@ export function AtribuirTreino({ studentId }: { studentId: string }) {
             hasWarmup: ex?.hasWarmup ?? false,
             setsConfig: ex?.setsConfig ?? null,
             warmupConfig: ex?.warmupConfig ?? null,
-            mediaUrl: ex?.mediaUrl ?? null,
-            mediaType: ex?.mediaType ?? null,
-            mediaPath: ex?.mediaPath ?? null,
+            mediaUrl: ex?.mediaFiles?.[0]?.url ?? ex?.mediaUrl ?? null,
+            mediaType: ex?.mediaFiles?.[0]?.type ?? ex?.mediaType ?? null,
+            mediaPath: ex?.mediaFiles?.[0]?.path ?? ex?.mediaPath ?? null,
+            mediaFiles: ex?.mediaFiles ?? null,
           })),
         })),
       };

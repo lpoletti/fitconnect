@@ -256,15 +256,20 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                           {es.exerciseName}
                         </p>
                         {ex?.notes && <p className="text-xs text-muted-foreground italic">{ex.notes}</p>}
-                        {ex?.mediaUrl && (
-                          <div className="mt-2">
-                            {ex.mediaType === 'image' ? (
-                              <img src={ex.mediaUrl} alt={es.exerciseName} className="h-28 rounded-lg object-cover" />
-                            ) : (
-                              <video src={ex.mediaUrl} className="h-28 rounded-lg" controls />
-                            )}
-                          </div>
-                        )}
+                        {(() => {
+                          const files = ex?.mediaFiles && Array.isArray(ex.mediaFiles) && ex.mediaFiles.length > 0
+                            ? ex.mediaFiles
+                            : ex?.mediaUrl ? [{ url: ex.mediaUrl, type: ex.mediaType }] : [];
+                          return files.length > 0 ? (
+                            <div className="mt-2 flex gap-2 flex-wrap">
+                              {files.map((m: any, mi: number) => (
+                                m.type === 'image'
+                                  ? <img key={mi} src={m.url} alt={`${es.exerciseName} ${mi + 1}`} className="h-24 rounded-lg object-cover" />
+                                  : <video key={mi} src={m.url} className="h-24 rounded-lg" controls />
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

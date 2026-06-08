@@ -56,9 +56,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
               hasWarmup: ex?.hasWarmup ?? false,
               setsConfig: sc.length > 0 ? sc : null,
               warmupConfig: ex?.hasWarmup && ex?.warmupConfig?.length > 0 ? ex.warmupConfig : null,
-              mediaUrl: ex?.mediaUrl ?? null,
-              mediaType: ex?.mediaType ?? null,
-              mediaPath: ex?.mediaPath ?? null,
+              mediaUrl: ex?.mediaFiles?.[0]?.url ?? ex?.mediaUrl ?? null,
+              mediaType: ex?.mediaFiles?.[0]?.type ?? ex?.mediaType ?? null,
+              mediaPath: ex?.mediaFiles?.[0]?.path ?? ex?.mediaPath ?? null,
+              mediaFiles: ex?.mediaFiles?.length > 0 ? ex.mediaFiles : null,
             };
           }),
         },

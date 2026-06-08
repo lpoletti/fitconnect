@@ -22,15 +22,19 @@ interface WarmupSetConfig {
   restTime: string;
 }
 
+interface MediaFile {
+  url: string;
+  type: string; // 'image' | 'video'
+  path: string; // cloud_storage_path
+}
+
 interface Exercise {
   exerciseName: string;
   notes: string;
   setsConfig: SetConfig[];
   hasWarmup: boolean;
   warmupConfig: WarmupSetConfig[];
-  mediaUrl: string;
-  mediaType: string;
-  mediaPath: string;
+  mediaFiles: MediaFile[];
   uploading?: boolean;
 }
 
@@ -92,10 +96,20 @@ function parseExercise(e: any): Exercise {
     setsConfig: setsConfig.length > 0 ? setsConfig : [defaultSet()],
     hasWarmup: e?.hasWarmup ?? false,
     warmupConfig: warmupConfig.length > 0 ? warmupConfig : [defaultWarmupSet()],
-    mediaUrl: e?.mediaUrl ?? '',
-    mediaType: e?.mediaType ?? '',
-    mediaPath: e?.mediaPath ?? '',
+    mediaFiles: parseMediaFiles(e),
   };
+}
+
+function parseMediaFiles(e: any): MediaFile[] {
+  // New format: mediaFiles array
+  if (e?.mediaFiles && Array.isArray(e.mediaFiles) && e.mediaFiles.length > 0) {
+    return e.mediaFiles.map((m: any) => ({ url: m.url ?? '', type: m.type ?? 'image', path: m.path ?? '' }));
+  }
+  // Legacy: single media fields
+  if (e?.mediaUrl) {
+    return [{ url: e.mediaUrl, type: e.mediaType ?? 'image', path: e.mediaPath ?? '' }];
+  }
+  return [];
 }
 
 const defaultExercise = (): Exercise => ({
@@ -104,9 +118,7 @@ const defaultExercise = (): Exercise => ({
   setsConfig: [defaultSet(), defaultSet(), defaultSet()],
   hasWarmup: false,
   warmupConfig: [defaultWarmupSet()],
-  mediaUrl: '',
-  mediaType: '',
-  mediaPath: '',
+  mediaFiles: [],
 });
 
 export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loading = false }: WorkoutFormProps) {
@@ -171,6 +183,11 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
   };
 
   const handleMediaUpload = async (exIdx: number, file: File) => {
+    const ex = exercises[exIdx];
+    if (ex.mediaFiles.length >= 3) {
+      toast.error('Máximo de 3 mídias por exercício.');
+      return;
+    }
     const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxSize) {
       toast.error(file.type.startsWith('video/') ? 'Vídeo: máx 100MB' : 'Imagem: máx 10MB');
@@ -192,7 +209,6 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
       }
       const { uploadUrl, cloud_storage_path, mediaType } = await res.json();
 
-      // Check if content-disposition is in signed headers
       const url = new URL(uploadUrl);
       const signedHeaders = url.searchParams.get('X-Amz-SignedHeaders') ?? '';
       const headers: Record<string, string> = { 'Content-Type': file.type };
@@ -203,7 +219,6 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
       const uploadRes = await fetch(uploadUrl, { method: 'PUT', headers, body: file });
       if (!uploadRes.ok) throw new Error('Erro no upload');
 
-      // Build public URL
       const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
       const region = process.env.NEXT_PUBLIC_AWS_REGION;
       let publicUrl = '';
@@ -211,12 +226,16 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
         publicUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
       }
 
+      const newMedia: MediaFile = {
+        url: publicUrl || cloud_storage_path,
+        type: mediaType,
+        path: cloud_storage_path,
+      };
+
       const updated2 = [...exercises];
       updated2[exIdx] = {
         ...updated2[exIdx],
-        mediaUrl: publicUrl || cloud_storage_path,
-        mediaType,
-        mediaPath: cloud_storage_path,
+        mediaFiles: [...updated2[exIdx].mediaFiles, newMedia],
         uploading: false,
       };
       setExercises(updated2);
@@ -229,9 +248,12 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
     }
   };
 
-  const removeMedia = (exIdx: number) => {
+  const removeMedia = (exIdx: number, mediaIdx: number) => {
     const updated = [...exercises];
-    updated[exIdx] = { ...updated[exIdx], mediaUrl: '', mediaType: '', mediaPath: '' };
+    updated[exIdx] = {
+      ...updated[exIdx],
+      mediaFiles: updated[exIdx].mediaFiles.filter((_, idx) => idx !== mediaIdx),
+    };
     setExercises(updated);
   };
 
@@ -294,47 +316,52 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
                   placeholder="Observações sobre o exercício" />
               </div>
 
-              {/* Media upload */}
+              {/* Media upload - multiple files (max 3) */}
               <div className="space-y-1.5 sm:col-span-2">
                 <Label className="text-xs flex items-center gap-1">
-                  <Upload className="h-3 w-3" /> Foto/Vídeo de Execução (opcional)
+                  <Upload className="h-3 w-3" /> Mídias de Execução ({ex.mediaFiles.length}/3)
                 </Label>
-                {ex.mediaUrl ? (
-                  <div className="relative inline-block">
-                    {ex.mediaType === 'image' ? (
-                      <img src={ex.mediaUrl} alt="Exercício" className="h-24 rounded-lg object-cover" />
-                    ) : (
-                      <video src={ex.mediaUrl} className="h-24 rounded-lg" controls />
-                    )}
-                    <button type="button" onClick={() => removeMedia(i)}
-                      className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/50 transition-colors ${
-                    ex.uploading ? 'opacity-50 pointer-events-none' : ''
-                  }`}>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-                      onChange={(e: any) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleMediaUpload(i, file);
-                        e.target.value = '';
-                      }}
-                    />
-                    {ex.uploading ? (
-                      <span className="text-xs text-muted-foreground">Enviando...</span>
-                    ) : (
-                      <>
-                        <Image className="h-4 w-4 text-muted-foreground" />
-                        <Video className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Foto (10MB) ou Vídeo (100MB)</span>
-                      </>
-                    )}
-                  </label>
+                <div className="flex flex-wrap gap-2">
+                  {ex.mediaFiles.map((media, mi) => (
+                    <div key={mi} className="relative inline-block">
+                      {media.type === 'image' ? (
+                        <img src={media.url} alt={`Mídia ${mi + 1}`} className="h-20 w-20 rounded-lg object-cover" />
+                      ) : (
+                        <video src={media.url} className="h-20 w-20 rounded-lg object-cover" />
+                      )}
+                      <button type="button" onClick={() => removeMedia(i, mi)}
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {ex.mediaFiles.length < 3 && (
+                    <label className={`flex flex-col items-center justify-center h-20 w-20 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/50 transition-colors ${
+                      ex.uploading ? 'opacity-50 pointer-events-none' : ''
+                    }`}>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                        onChange={(e: any) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleMediaUpload(i, file);
+                          e.target.value = '';
+                        }}
+                      />
+                      {ex.uploading ? (
+                        <span className="text-[10px] text-muted-foreground">Enviando...</span>
+                      ) : (
+                        <>
+                          <Plus className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-[9px] text-muted-foreground mt-0.5">Foto/Vídeo</span>
+                        </>
+                      )}
+                    </label>
+                  )}
+                </div>
+                {ex.mediaFiles.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground">Foto (máx 10MB) ou Vídeo (máx 100MB)</p>
                 )}
               </div>
             </div>

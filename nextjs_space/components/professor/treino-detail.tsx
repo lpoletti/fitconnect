@@ -99,15 +99,20 @@ export function TreinoDetail({ id }: { id: string }) {
                           <p className="font-medium">{ex?.exerciseName ?? 'Exercício'}</p>
                           {ex?.notes && <p className="text-xs text-muted-foreground mt-0.5 italic">{ex.notes}</p>}
                         </div>
-                        {ex?.mediaUrl && (
-                          <div className="shrink-0">
-                            {ex.mediaType === 'image' ? (
-                              <img src={ex.mediaUrl} alt={ex.exerciseName} className="h-16 w-16 rounded-lg object-cover" />
-                            ) : (
-                              <video src={ex.mediaUrl} className="h-16 w-16 rounded-lg object-cover" />
-                            )}
-                          </div>
-                        )}
+                        {(() => {
+                          const files = ex?.mediaFiles && Array.isArray(ex.mediaFiles) && ex.mediaFiles.length > 0
+                            ? ex.mediaFiles
+                            : ex?.mediaUrl ? [{ url: ex.mediaUrl, type: ex.mediaType }] : [];
+                          return files.length > 0 ? (
+                            <div className="flex gap-1 shrink-0">
+                              {files.map((m: any, mi: number) => (
+                                m.type === 'image'
+                                  ? <img key={mi} src={m.url} alt={`${ex.exerciseName} ${mi + 1}`} className="h-14 w-14 rounded-lg object-cover" />
+                                  : <video key={mi} src={m.url} className="h-14 w-14 rounded-lg object-cover" />
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
 
                       {/* Warmup sets */}

@@ -6,6 +6,17 @@ export default withAuth(
     const token = req.nextauth?.token;
     const { pathname } = req.nextUrl;
 
+    // If user has no userType (Google SSO new user), redirect to onboarding
+    if (!token?.userType && pathname !== '/onboarding') {
+      return NextResponse.redirect(new URL('/onboarding', req.url));
+    }
+
+    // If user has userType and is on onboarding, redirect to their dashboard
+    if (token?.userType && pathname === '/onboarding') {
+      const dest = token.userType === 'professor' ? '/professor/dashboard' : '/aluno/dashboard';
+      return NextResponse.redirect(new URL(dest, req.url));
+    }
+
     if (pathname.startsWith('/professor') && token?.userType !== 'professor') {
       return NextResponse.redirect(new URL('/aluno/dashboard', req.url));
     }
@@ -22,5 +33,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ['/professor/:path*', '/aluno/:path*'],
+  matcher: ['/professor/:path*', '/aluno/:path*', '/onboarding'],
 };

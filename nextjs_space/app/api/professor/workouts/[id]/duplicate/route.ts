@@ -37,6 +37,7 @@ export async function POST(_request: NextRequest, { params }: { params: { id: st
             mediaUrl: (ex as any).mediaUrl ?? null,
             mediaType: (ex as any).mediaType ?? null,
             mediaPath: (ex as any).mediaPath ?? null,
+            mediaFiles: (ex as any).mediaFiles ?? null,
           })),
         },
       },
