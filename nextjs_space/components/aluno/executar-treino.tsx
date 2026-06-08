@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import {
   LayoutDashboard, ClipboardList, History, ArrowLeft,
-  Dumbbell, Clock, Weight, CheckCircle, Trophy, Flame, CheckCheck, Calendar as CalendarIcon
+  Dumbbell, Clock, Weight, CheckCircle, Trophy, Flame, CheckCheck, Calendar as CalendarIcon, XCircle
 } from 'lucide-react';
 
 const navItems = [
@@ -88,6 +88,19 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
   const [saving, setSaving] = useState(false);
   const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>([]);
   const [notes, setNotes] = useState('');
+  const [startTime] = useState<number>(Date.now());
+  const [elapsed, setElapsed] = useState('00:00');
+
+  // Timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const diff = Math.floor((Date.now() - startTime) / 1000);
+      const mins = Math.floor(diff / 60).toString().padStart(2, '0');
+      const secs = (diff % 60).toString().padStart(2, '0');
+      setElapsed(`${mins}:${secs}`);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
 
   useEffect(() => {
     if (!workoutId) return;
@@ -145,6 +158,12 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
   }, 0);
   const totalCount = exerciseStates.reduce((acc, es) => acc + es.setsLog.length + es.warmupLog.length, 0);
 
+  const handleCancel = () => {
+    if (confirm('Tem certeza que deseja cancelar o treino? O progresso será perdido.')) {
+      router.push('/aluno/treinos');
+    }
+  };
+
   const handleComplete = async () => {
     if (!allCompleted) {
       toast.error('Marque todas as séries como concluídas.');
@@ -197,9 +216,13 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
           </div>
           {totalCount > 0 && (
             <div className="flex items-center gap-3">
+              <div className="bg-primary/10 px-3 py-1.5 rounded-lg">
+                <p className="text-xs text-muted-foreground">Tempo</p>
+                <p className="text-sm font-bold font-mono text-primary">{elapsed}</p>
+              </div>
               {!allCompleted && (
-                <Button variant="outline" size="sm" onClick={markAllCompleted} className="gap-1.5 text-xs">
-                  <CheckCheck className="h-3.5 w-3.5" /> Marcar Todas
+                <Button variant="outline" size="sm" onClick={markAllCompleted} className="gap-1.5 text-xs min-h-[36px]">
+                  <CheckCheck className="h-3.5 w-3.5" /> Todas
                 </Button>
               )}
               <div className="text-right">
@@ -365,9 +388,13 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                   placeholder="Como foi o treino hoje?" />
               </div>
               <Button onClick={handleComplete} disabled={!allCompleted || saving}
-                className="w-full gap-2" size="lg">
+                className="w-full gap-2 min-h-[48px]" size="lg">
                 <Trophy className="h-5 w-5" />
                 {saving ? 'Salvando...' : 'Concluir Treino'}
+              </Button>
+              <Button variant="outline" onClick={handleCancel}
+                className="w-full gap-2 text-destructive min-h-[44px]">
+                <XCircle className="h-4 w-4" /> Cancelar Treino
               </Button>
               {!allCompleted && (
                 <p className="text-xs text-center text-muted-foreground">

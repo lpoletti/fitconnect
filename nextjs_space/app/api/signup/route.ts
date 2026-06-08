@@ -7,7 +7,7 @@ import { prisma } from '@/lib/db';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name, userType } = body ?? {};
+    const { email, password, name, userType, inviteCode } = body ?? {};
 
     if (!email || !password || !name || !userType) {
       return NextResponse.json({ error: 'Todos os campos são obrigatórios.' }, { status: 400 });
@@ -36,27 +36,88 @@ export async function POST(request: NextRequest) {
     });
 
     if (userType === 'professor') {
+      // Generate unique invite code for professor
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      // Ensure uniqueness
+      let attempts = 0;
+      while (attempts < 10) {
+        const dup = await prisma.professor.findUnique({ where: { inviteCode: code } });
+        if (!dup) break;
+        code = '';
+        for (let i = 0; i < 6; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        attempts++;
+      }
+
       await prisma.professor.create({
-        data: { userId: user.id, plan: 'free', maxStudents: 2 },
+        data: { userId: user.id, plan: 'free', maxStudents: 2, inviteCode: code },
       });
     } else {
       const student = await prisma.student.create({
         data: { userId: user.id },
       });
-      // Auto-link: check if any professor has a pending invite for this email
-      const pendingLinks = await prisma.studentProfessorLink.findMany({
-        where: { studentId: 'pending_' + normalizedEmail, status: 'pending' },
+
+      // Auto-link via PendingInvite records (professor invited this email)
+      const pendingInvites = await prisma.pendingInvite.findMany({
+        where: { email: normalizedEmail },
       });
-      // We handle pending invites via a different mechanism - see invite endpoint
-      // Check for pending invitations stored as placeholder links
-      const invitations = await prisma.studentProfessorLink.findMany({
-        where: { studentId: normalizedEmail, status: 'pending' },
-      });
-      for (const inv of invitations ?? []) {
-        await prisma.studentProfessorLink.update({
-          where: { id: inv.id },
-          data: { studentId: student.id, status: 'active' },
+      for (const inv of pendingInvites) {
+        // Check plan limit before creating link
+        const activeCount = await prisma.studentProfessorLink.count({
+          where: { professorId: inv.professorId, status: 'active' },
         });
+        const prof = await prisma.professor.findUnique({ where: { id: inv.professorId } });
+        const maxStudents = prof?.maxStudents ?? 2;
+        if (activeCount < maxStudents) {
+          await prisma.studentProfessorLink.create({
+            data: {
+              studentId: student.id,
+              professorId: inv.professorId,
+              status: 'active',
+            },
+          });
+        }
+      }
+      // Delete all pending invites for this email
+      if (pendingInvites.length > 0) {
+        await prisma.pendingInvite.deleteMany({ where: { email: normalizedEmail } });
+      }
+
+      // Auto-link via invite code
+      if (inviteCode) {
+        const professor = await prisma.professor.findUnique({
+          where: { inviteCode: inviteCode.toUpperCase().trim() },
+        });
+        if (professor) {
+          // Check if not already linked via pending invite
+          const existingLink = await prisma.studentProfessorLink.findUnique({
+            where: {
+              studentId_professorId: {
+                studentId: student.id,
+                professorId: professor.id,
+              },
+            },
+          });
+          if (!existingLink) {
+            const activeCount = await prisma.studentProfessorLink.count({
+              where: { professorId: professor.id, status: 'active' },
+            });
+            if (activeCount < (professor.maxStudents ?? 2)) {
+              await prisma.studentProfessorLink.create({
+                data: {
+                  studentId: student.id,
+                  professorId: professor.id,
+                  status: 'active',
+                },
+              });
+            }
+          }
+        }
       }
     }
 

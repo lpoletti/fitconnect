@@ -22,7 +22,12 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json(links ?? []);
+    const pendingInvites = await prisma.pendingInvite.findMany({
+      where: { professorId: session.user.professorId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json({ students: links ?? [], pendingInvites: pendingInvites ?? [] });
   } catch (error: any) {
     console.error('Students error:', error);
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
@@ -94,7 +99,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Aluno vinculado com sucesso!' }, { status: 201 });
     }
 
-    // Student not registered yet - send invite email
+    // Student not registered yet - check for existing pending invite
+    const existingInvite = await prisma.pendingInvite.findUnique({
+      where: {
+        email_professorId: {
+          email: normalizedEmail,
+          professorId: session.user.professorId,
+        },
+      },
+    });
+    if (existingInvite) {
+      return NextResponse.json({ error: 'Já existe um convite pendente para este email.' }, { status: 409 });
+    }
+
+    // Create pending invite
+    await prisma.pendingInvite.create({
+      data: {
+        email: normalizedEmail,
+        professorId: session.user.professorId,
+      },
+    });
+
+    // Send invite email
     const professorName = session.user.name || 'Seu Professor';
     const appUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
@@ -107,7 +133,7 @@ export async function POST(request: NextRequest) {
         <p style="color: #4b5563;"><strong>${professorName}</strong> convidou você para acompanhar seus treinos na plataforma FitConnect.</p>
         <p style="color: #4b5563;">Crie sua conta gratuita para começar:</p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${appUrl}/signup" style="background: #4f46e5; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">Criar Minha Conta</a>
+          <a href="${appUrl}/signup?type=aluno&email=${encodeURIComponent(normalizedEmail)}" style="background: #4f46e5; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">Criar Minha Conta</a>
         </div>
         <p style="color: #9ca3af; font-size: 13px;">Use o email <strong>${normalizedEmail}</strong> para criar sua conta e ser vinculado automaticamente.</p>
       `),

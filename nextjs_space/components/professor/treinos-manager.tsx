@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { DashboardShell } from '@/components/shared/dashboard-shell';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import {
   LayoutDashboard, Users, ClipboardList, Plus, Copy, Trash2,
-  Eye, Edit, Dumbbell, Tag
-, CreditCard
+  Eye, Edit, Dumbbell, Tag, Search, CreditCard
 } from 'lucide-react';
 
 const navItems = [
@@ -22,6 +22,7 @@ const navItems = [
 export function TreinosManager() {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => { fetchWorkouts(); }, []);
 
@@ -78,19 +79,40 @@ export function TreinosManager() {
           </Link>
         </div>
 
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar treino por nome ou categoria..."
+            value={searchQuery}
+            onChange={(e: any) => setSearchQuery(e.target.value)}
+            className="pl-10 min-h-[44px]"
+          />
+        </div>
+
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">Carregando...</div>
-        ) : (workouts ?? []).length === 0 ? (
+        ) : (workouts ?? []).filter((w: any) => {
+            if (!searchQuery) return true;
+            const q = searchQuery.toLowerCase();
+            return (w?.name ?? '').toLowerCase().includes(q) || (w?.category ?? '').toLowerCase().includes(q);
+          }).length === 0 ? (
           <div className="bg-card rounded-xl p-12 shadow-[var(--shadow-md)] text-center">
             <Dumbbell className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">Nenhum treino criado ainda.</p>
-            <Link href="/professor/treinos/novo">
-              <Button className="mt-4 gap-1"><Plus className="h-4 w-4" /> Criar Primeiro Treino</Button>
-            </Link>
+            <p className="text-muted-foreground">{searchQuery ? 'Nenhum treino encontrado.' : 'Nenhum treino criado ainda.'}</p>
+            {!searchQuery && (
+              <Link href="/professor/treinos/novo">
+                <Button className="mt-4 gap-1"><Plus className="h-4 w-4" /> Criar Primeiro Treino</Button>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid gap-4">
-            {(workouts ?? []).map((w: any) => (
+            {(workouts ?? []).filter((w: any) => {
+              if (!searchQuery) return true;
+              const q = searchQuery.toLowerCase();
+              return (w?.name ?? '').toLowerCase().includes(q) || (w?.category ?? '').toLowerCase().includes(q);
+            }).map((w: any) => (
               <div key={w?.id} className="bg-card rounded-xl p-5 shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-shadow">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex-1">

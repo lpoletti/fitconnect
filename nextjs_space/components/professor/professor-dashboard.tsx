@@ -48,7 +48,10 @@ export function ProfessorDashboard() {
         fetch('/api/professor/students'),
       ]);
       if (statsRes.ok) setStats(await statsRes.json());
-      if (studentsRes.ok) setStudents(await studentsRes.json());
+      if (studentsRes.ok) {
+        const sData = await studentsRes.json();
+        setStudents(sData?.students ?? sData ?? []);
+      }
     } catch {
       toast.error('Erro ao carregar dados.');
     } finally {
@@ -57,7 +60,8 @@ export function ProfessorDashboard() {
   };
 
   const activeCount = (students ?? []).filter((s: StudentLink) => s?.status === 'active')?.length ?? 0;
-  const isAtLimit = activeCount >= 2;
+  const maxStudents = stats?.maxStudents ?? 2;
+  const isAtLimit = activeCount >= maxStudents;
 
   return (
     <DashboardShell navItems={navItems}>
@@ -74,7 +78,7 @@ export function ProfessorDashboard() {
             variant={isAtLimit ? 'warning' : 'default'} />
           <StatCard title="Treinos Criados" value={stats?.workoutCount ?? 0} icon={ClipboardList} />
           <StatCard title="Plano Atual" value={(stats?.plan ?? 'free') === 'free' ? 'Gratuito' : 'Pro'} icon={Dumbbell}
-            description={isAtLimit ? 'Limite atingido' : 'Até 2 alunos'}
+            description={isAtLimit ? 'Limite atingido' : `Até ${maxStudents} alunos`}
             variant={isAtLimit ? 'warning' : 'success'} />
         </div>
 
@@ -84,7 +88,7 @@ export function ProfessorDashboard() {
             <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
             <div>
               <p className="font-medium text-amber-700 dark:text-amber-400">Limite de alunos atingido</p>
-              <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">Você atingiu o limite de 2 alunos ativos no plano gratuito.</p>
+              <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">Você atingiu o limite de {maxStudents} alunos ativos no seu plano atual.</p>
             </div>
           </div>
         )}

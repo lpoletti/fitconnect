@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Dumbbell, Mail, Lock, Eye, EyeOff, User, GraduationCap } from 'lucide-react';
+import { Dumbbell, Mail, Lock, Eye, EyeOff, User, GraduationCap, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,11 +12,18 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export function SignupForm() {
-  const [userType, setUserType] = useState<'professor' | 'aluno'>('professor');
+  const searchParams = useSearchParams();
+  const typeParam = searchParams?.get('type');
+  const emailParam = searchParams?.get('email');
+
+  const [userType, setUserType] = useState<'professor' | 'aluno'>(
+    typeParam === 'aluno' ? 'aluno' : 'professor'
+  );
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(emailParam ?? '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { data: session, status } = useSession() || {};
@@ -49,7 +55,7 @@ export function SignupForm() {
       const res = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, userType }),
+        body: JSON.stringify({ email, password, name, userType, inviteCode: inviteCode.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -86,7 +92,7 @@ export function SignupForm() {
             <button type="button"
               onClick={() => setUserType('professor')}
               className={cn(
-                'flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all',
+                'flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all min-h-[44px]',
                 userType === 'professor' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               )}>
               <GraduationCap className="h-4 w-4" /> Professor
@@ -94,7 +100,7 @@ export function SignupForm() {
             <button type="button"
               onClick={() => setUserType('aluno')}
               className={cn(
-                'flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all',
+                'flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all min-h-[44px]',
                 userType === 'aluno' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               )}>
               <User className="h-4 w-4" /> Aluno
@@ -105,23 +111,23 @@ export function SignupForm() {
             <Label htmlFor="name">Nome completo</Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="name" placeholder="Seu nome" value={name} onChange={(e: any) => setName(e.target.value)} className="pl-10" />
+              <Input id="name" placeholder="Seu nome" value={name} onChange={(e: any) => setName(e.target.value)} className="pl-10 min-h-[44px]" />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e: any) => setEmail(e.target.value)} className="pl-10" />
+              <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e: any) => setEmail(e.target.value)} className="pl-10 min-h-[44px]" />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={password} onChange={(e: any) => setPassword(e.target.value)} className="pl-10 pr-10" />
+              <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={password} onChange={(e: any) => setPassword(e.target.value)} className="pl-10 pr-10 min-h-[44px]" />
               <button type="button" onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
@@ -130,10 +136,25 @@ export function SignupForm() {
             <Label htmlFor="confirmPassword">Confirmar Senha</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="Repita a senha" value={confirmPassword} onChange={(e: any) => setConfirmPassword(e.target.value)} className="pl-10" />
+              <Input id="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="Repita a senha" value={confirmPassword} onChange={(e: any) => setConfirmPassword(e.target.value)} className="pl-10 min-h-[44px]" />
             </div>
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
+
+          {/* Invite Code for Aluno */}
+          {userType === 'aluno' && (
+            <div className="space-y-2">
+              <Label htmlFor="inviteCode">Código do Professor (opcional)</Label>
+              <div className="relative">
+                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input id="inviteCode" placeholder="Ex: ABC123" value={inviteCode}
+                  onChange={(e: any) => setInviteCode(e.target.value.toUpperCase())}
+                  className="pl-10 min-h-[44px] font-mono tracking-wider" maxLength={6} />
+              </div>
+              <p className="text-xs text-muted-foreground">Se seu professor forneceu um código, insira aqui para vincular automaticamente.</p>
+            </div>
+          )}
+
+          <Button type="submit" className="w-full min-h-[44px]" disabled={loading}>
             {loading ? 'Criando conta...' : `Cadastrar como ${userType === 'professor' ? 'Professor' : 'Aluno'}`}
           </Button>
           <p className="text-center text-sm text-muted-foreground">

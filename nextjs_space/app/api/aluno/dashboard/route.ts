@@ -22,7 +22,7 @@ export async function GET() {
       },
     });
 
-    // Get active workouts
+    // Get active workouts (both professor-assigned and personal)
     const workouts = await prisma.assignedWorkout.findMany({
       where: { studentId, status: 'active' },
       include: {
