@@ -11,12 +11,14 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Users, ClipboardList, UserPlus, Mail,
   CheckCircle, XCircle, User, Ban, RotateCcw
+, CreditCard
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/professor/dashboard', icon: LayoutDashboard },
   { label: 'Alunos', href: '/professor/alunos', icon: Users },
   { label: 'Treinos', href: '/professor/treinos', icon: ClipboardList },
+  { label: 'Meu Plano', href: '/professor/plano', icon: CreditCard },
 ];
 
 export function AlunosManager() {

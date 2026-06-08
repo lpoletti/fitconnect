@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getPlanLimits } from '@/lib/plans';
+import { sendNotificationEmail, buildEmailTemplate } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -93,10 +94,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Aluno vinculado com sucesso!' }, { status: 201 });
     }
 
-    // Student not registered yet - we can't create a real link, store invite
-    // For MVP: return message that student needs to create account first
+    // Student not registered yet - send invite email
+    const professorName = session.user.name || 'Seu Professor';
+    const appUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
+    sendNotificationEmail({
+      notificationId: process.env.NOTIF_ID_CONVITE_PARA_ALUNO || '',
+      recipientEmail: normalizedEmail,
+      subject: `${professorName} convidou você para o FitConnect!`,
+      htmlBody: buildEmailTemplate('Você foi convidado!', `
+        <p style="color: #4b5563;">Olá!</p>
+        <p style="color: #4b5563;"><strong>${professorName}</strong> convidou você para acompanhar seus treinos na plataforma FitConnect.</p>
+        <p style="color: #4b5563;">Crie sua conta gratuita para começar:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${appUrl}/signup" style="background: #4f46e5; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">Criar Minha Conta</a>
+        </div>
+        <p style="color: #9ca3af; font-size: 13px;">Use o email <strong>${normalizedEmail}</strong> para criar sua conta e ser vinculado automaticamente.</p>
+      `),
+    }).catch(() => {});
+
     return NextResponse.json({
-      message: 'Convite registrado! O aluno precisa criar uma conta com este email para vincular automaticamente.',
+      message: 'Convite enviado por email! O aluno precisa criar uma conta com este email para vincular automaticamente.',
       pending: true,
     }, { status: 201 });
   } catch (error: any) {

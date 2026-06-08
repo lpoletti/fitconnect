@@ -25,12 +25,15 @@ model User {
 }
 
 model Professor {
-  id            String    @id @default(cuid())
-  userId        String    @unique @map("user_id")
-  plan          String    @default("free") // 'free' | 'pro'
-  maxStudents   Int       @default(2) @map("max_students")
-  specialty     String?   @default("Personal Trainer")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id                    String    @id @default(cuid())
+  userId                String    @unique @map("user_id")
+  plan                  String    @default("free")
+  maxStudents           Int       @default(2) @map("max_students")
+  specialty             String?   @default("Personal Trainer")
+  stripeCustomerId      String?   @map("stripe_customer_id")
+  stripeSubscriptionId  String?   @map("stripe_subscription_id")
+  stripeBillingCycle    String?   @map("stripe_billing_cycle")
+  createdAt             DateTime  @default(now()) @map("created_at")
 
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   studentLinks  StudentProfessorLink[]

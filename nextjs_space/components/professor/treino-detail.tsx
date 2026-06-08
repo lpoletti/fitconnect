@@ -9,12 +9,14 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Users, ClipboardList, ArrowLeft, Edit,
   Dumbbell, Tag, Clock, Weight, Flame
+, CreditCard
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/professor/dashboard', icon: LayoutDashboard },
   { label: 'Alunos', href: '/professor/alunos', icon: Users },
   { label: 'Treinos', href: '/professor/treinos', icon: ClipboardList },
+  { label: 'Meu Plano', href: '/professor/plano', icon: CreditCard },
 ];
 
 function getSetsDisplay(ex: any): { reps: string; weight: string; restTime: string }[] {

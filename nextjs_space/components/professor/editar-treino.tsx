@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/shared/dashboard-shell';
 import { WorkoutForm } from '@/components/professor/workout-form';
 import { toast } from 'sonner';
-import { LayoutDashboard, Users, ClipboardList, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, ArrowLeft , CreditCard
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -13,6 +14,7 @@ const navItems = [
   { label: 'Dashboard', href: '/professor/dashboard', icon: LayoutDashboard },
   { label: 'Alunos', href: '/professor/alunos', icon: Users },
   { label: 'Treinos', href: '/professor/treinos', icon: ClipboardList },
+  { label: 'Meu Plano', href: '/professor/plano', icon: CreditCard },
 ];
 
 export function EditarTreino({ id }: { id: string }) {

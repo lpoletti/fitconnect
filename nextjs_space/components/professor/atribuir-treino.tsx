@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import {
   LayoutDashboard, Users, ClipboardList, ArrowLeft,
   ClipboardCheck, Plus, Dumbbell, Check, X
+, CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -19,6 +20,7 @@ const navItems = [
   { label: 'Dashboard', href: '/professor/dashboard', icon: LayoutDashboard },
   { label: 'Alunos', href: '/professor/alunos', icon: Users },
   { label: 'Treinos', href: '/professor/treinos', icon: ClipboardList },
+  { label: 'Meu Plano', href: '/professor/plano', icon: CreditCard },
 ];
 
 export function AtribuirTreino({ studentId }: { studentId: string }) {
