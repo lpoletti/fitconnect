@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { DashboardShell } from '@/components/shared/dashboard-shell';
 import { StatCard } from '@/components/shared/stat-card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -12,7 +13,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   LayoutDashboard, ClipboardList, History, Dumbbell,
-  User, Calendar, Play, CheckCircle, Trophy
+  User, Calendar, Play, CheckCircle, Trophy, Link2
 } from 'lucide-react';
 
 const navItems = [
@@ -26,14 +27,46 @@ export function AlunoDashboard() {
   const { data: session } = useSession() || {};
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [inviteCode, setInviteCode] = useState('');
+  const [linking, setLinking] = useState(false);
 
-  useEffect(() => {
+  const fetchData = () => {
     fetch('/api/aluno/dashboard')
       .then((r: any) => r.ok ? r.json() : null)
       .then((d: any) => setData(d))
       .catch(() => toast.error('Erro ao carregar dados.'))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleLinkProfessor = async () => {
+    if (!inviteCode.trim()) {
+      toast.error('Informe o código do professor.');
+      return;
+    }
+    setLinking(true);
+    try {
+      const res = await fetch('/api/aluno/link-professor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode: inviteCode.trim() }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        toast.error(result?.error ?? 'Erro ao vincular.');
+      } else {
+        toast.success(result?.message ?? 'Vinculado com sucesso!');
+        setInviteCode('');
+        setLoading(true);
+        fetchData();
+      }
+    } catch {
+      toast.error('Erro ao vincular professor.');
+    } finally {
+      setLinking(false);
+    }
+  };
 
   const workouts = data?.workouts ?? [];
   const recentLogs = data?.recentLogs ?? [];
@@ -57,6 +90,45 @@ export function AlunoDashboard() {
               <StatCard title="Professor" value={data?.professor?.name ?? 'Sem vínculo'} icon={User}
                 description={data?.professor?.specialty ?? ''} />
             </div>
+
+            {/* Link Professor Card - shown when no professor linked */}
+            {!data?.professor && (
+              <div className="bg-card rounded-xl p-5 shadow-[var(--shadow-md)] border-2 border-dashed border-primary/20">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Link2 className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <p className="font-display font-semibold">Vincular Professor</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        Tem um código de convite? Insira abaixo para vincular com seu professor.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
+                        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Ex: ABC123"
+                          value={inviteCode}
+                          onChange={(e: any) => setInviteCode(e.target.value.toUpperCase())}
+                          className="pl-10 min-h-[44px] font-mono tracking-wider"
+                          maxLength={6}
+                        />
+                      </div>
+                      <Button
+                        onClick={handleLinkProfessor}
+                        disabled={linking || !inviteCode.trim()}
+                        className="gap-1 min-h-[44px]"
+                      >
+                        <Link2 className="h-4 w-4" />
+                        {linking ? 'Vinculando...' : 'Vincular'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Professor Card */}
             {data?.professor && (
