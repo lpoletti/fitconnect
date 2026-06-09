@@ -10,12 +10,13 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   LayoutDashboard, ClipboardList, History, Trophy,
-  Calendar as CalendarIcon, CheckCircle, ChevronDown, ChevronUp, Filter
+  Calendar as CalendarIcon, CheckCircle, ChevronDown, ChevronUp, Filter, FileCheck
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
   { label: 'Meus Treinos', href: '/aluno/treinos', icon: ClipboardList },
+  { label: 'Avaliações', href: '/aluno/avaliacoes', icon: FileCheck },
   { label: 'Calendário', href: '/aluno/calendario', icon: CalendarIcon },
   { label: 'Histórico', href: '/aluno/historico', icon: History },
 ];

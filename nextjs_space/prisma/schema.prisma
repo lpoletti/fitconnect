@@ -73,6 +73,7 @@ model Professor {
   workoutTemplates WorkoutTemplate[]
   assignedWorkouts AssignedWorkout[]
   pendingInvites PendingInvite[]
+  evaluations   StudentEvaluation[]
 
   @@map("professors")
 }
@@ -89,6 +90,7 @@ model Student {
   professorLinks StudentProfessorLink[]
   assignedWorkouts AssignedWorkout[]
   workoutLogs   WorkoutLog[]
+  evaluations   StudentEvaluation[]
 
   @@map("students")
 }
@@ -236,4 +238,57 @@ model ExerciseLog {
   workoutLog      WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
 
   @@map("exercise_logs")
+}
+
+model StudentEvaluation {
+  id              String    @id @default(cuid())
+  studentId       String    @map("student_id")
+  professorId     String    @map("professor_id")
+
+  // Seção 1: Dados + Anamnese
+  name            String
+  birthDate       DateTime? @map("birth_date")
+  sex             String?   // 'masculino' | 'feminino' | 'outro'
+  phone           String?
+  email           String?
+  previousTraining Boolean  @default(false) @map("previous_training")
+  healthIssues    Boolean   @default(false) @map("health_issues")
+  healthDetails   String?   @map("health_details")
+  medication      Boolean   @default(false)
+  medicationDetails String? @map("medication_details")
+  mainGoal        String?   @map("main_goal") // emagrecer/hipertrofiar/definir/condicionamento/saude
+  sleepQuality    String?   @map("sleep_quality") // ruim/regular/boa
+  stressLevel     String?   @map("stress_level") // baixo/medio/alto
+
+  // Seção 2: Medidas + Fotos
+  weight          Float?
+  height          Float?
+  waist           Float?   // cintura
+  abdomen         Float?
+  hip             Float?   // quadril
+  rightArm        Float?   @map("right_arm")
+  leftArm         Float?   @map("left_arm")
+  rightThigh      Float?   @map("right_thigh")
+  leftThigh       Float?   @map("left_thigh")
+  photoFront      String?  @map("photo_front")  // cloud_storage_path
+  photoBack       String?  @map("photo_back")
+  photoSide       String?  @map("photo_side")
+  photoFrontUrl   String?  @map("photo_front_url")
+  photoBackUrl    String?  @map("photo_back_url")
+  photoSideUrl    String?  @map("photo_side_url")
+
+  // Seção 3: Objetivos + Termo
+  specificGoal    String?  @map("specific_goal")
+  trainingDays    Json?    @map("training_days") // array of day strings
+  studentNotes    String?  @map("student_notes")
+  agreedTerms     Boolean  @default(false) @map("agreed_terms")
+  signatureName   String?  @map("signature_name")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  professor       Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+
+  @@map("student_evaluations")
 }

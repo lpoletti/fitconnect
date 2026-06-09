@@ -10,7 +10,7 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Users, ClipboardList, UserPlus, Mail,
   CheckCircle, XCircle, User, Ban, RotateCcw, Search,
-  Copy, Clock, CreditCard, Link2
+  Copy, Clock, CreditCard, Link2, ClipboardCheck
 } from 'lucide-react';
 
 const navItems = [
@@ -279,6 +279,11 @@ export function AlunosManager() {
                         <Link href={`/professor/alunos/${link?.student?.id}/atribuir-treino`}>
                           <Button size="sm" variant="outline" className="gap-1 min-h-[36px]">
                             <ClipboardList className="h-3 w-3" /> Atribuir Treino
+                          </Button>
+                        </Link>
+                        <Link href={`/professor/alunos/${link?.student?.id}/avaliacao`}>
+                          <Button size="sm" variant="outline" className="gap-1 min-h-[36px]">
+                            <ClipboardCheck className="h-3 w-3" /> Avaliar
                           </Button>
                         </Link>
                         <Button size="sm" variant="outline" className="gap-1 text-destructive min-h-[36px]" onClick={() => updateStatus(link.id, 'inactive')}>

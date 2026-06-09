@@ -8,12 +8,13 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import {
   LayoutDashboard, ClipboardList, History, Calendar as CalendarIcon,
-  ChevronLeft, ChevronRight, Dumbbell, Trophy, Flame
+  ChevronLeft, ChevronRight, Dumbbell, Trophy, Flame, FileCheck
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
   { label: 'Meus Treinos', href: '/aluno/treinos', icon: ClipboardList },
+  { label: 'Avaliações', href: '/aluno/avaliacoes', icon: FileCheck },
   { label: 'Calendário', href: '/aluno/calendario', icon: CalendarIcon },
   { label: 'Histórico', href: '/aluno/historico', icon: History },
 ];

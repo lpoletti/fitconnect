@@ -13,12 +13,13 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, ClipboardList, History, Play, Calendar as CalendarIcon,
-  Dumbbell, Search, Plus, X, Trash2
+  Dumbbell, Search, Plus, X, Trash2, FileCheck
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
   { label: 'Meus Treinos', href: '/aluno/treinos', icon: ClipboardList },
+  { label: 'Avaliações', href: '/aluno/avaliacoes', icon: FileCheck },
   { label: 'Calendário', href: '/aluno/calendario', icon: CalendarIcon },
   { label: 'Histórico', href: '/aluno/historico', icon: History },
 ];
