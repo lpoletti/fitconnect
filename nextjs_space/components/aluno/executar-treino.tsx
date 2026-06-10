@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import {
-  LayoutDashboard, ClipboardList, History, ArrowLeft,
+  LayoutDashboard, ClipboardList, History, ArrowLeft, Pencil,
   Dumbbell, Clock, Weight, CheckCircle, Trophy, Flame, CheckCheck, Calendar as CalendarIcon, XCircle, FileCheck
 } from 'lucide-react';
 
@@ -213,9 +213,16 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
           <div className="flex-1">
             <h1 className="font-display text-2xl font-bold tracking-tight">{workout?.workoutName ?? 'Carregando...'}</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              {workout?.professor?.user?.name ? `Prof. ${workout.professor.user.name}` : ''}
+              {workout?.professor?.user?.name ? `Prof. ${workout.professor.user.name}` : workout?.isPersonal ? 'Treino pessoal' : ''}
             </p>
           </div>
+          {workout?.isPersonal && (
+            <Link href={`/aluno/treinos/${workoutId}/editar`}>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Pencil className="h-3.5 w-3.5" /> Editar
+              </Button>
+            </Link>
+          )}
           {totalCount > 0 && (
             <div className="flex items-center gap-3">
               <div className="bg-primary/10 px-3 py-1.5 rounded-lg">

@@ -15,7 +15,7 @@ import { WorkoutForm } from '@/components/professor/workout-form';
 import { ImportWorkoutAI } from '@/components/aluno/import-workout-ai';
 import {
   LayoutDashboard, ClipboardList, History, Play, Calendar as CalendarIcon,
-  Dumbbell, Search, Plus, X, Trash2, FileCheck, Sparkles, EyeOff, Eye, MoreVertical
+  Dumbbell, Search, Plus, X, Trash2, FileCheck, Sparkles, EyeOff, Eye, Pencil
 } from 'lucide-react';
 
 const navItems = [
@@ -271,6 +271,17 @@ export function AlunoTreinos() {
                       </div>
                       {isPersonal && (
                         <div className="flex items-center gap-1">
+                          {!isInactive && (
+                            <Link href={`/aluno/treinos/${w.id}/editar`} onClick={(e: any) => e.stopPropagation()}>
+                              <Button
+                                type="button" size="sm" variant="ghost"
+                                className="h-8 w-8 p-0 text-primary hover:text-primary"
+                                title="Editar treino"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                          )}
                           <Button
                             type="button" size="sm" variant="ghost"
                             onClick={(e: any) => { e.preventDefault(); handleToggleWorkout(w.id, w.status); }}
