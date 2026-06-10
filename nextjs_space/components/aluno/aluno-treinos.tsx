@@ -12,9 +12,10 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { WorkoutForm } from '@/components/professor/workout-form';
+import { ImportWorkoutAI } from '@/components/aluno/import-workout-ai';
 import {
   LayoutDashboard, ClipboardList, History, Play, Calendar as CalendarIcon,
-  Dumbbell, Search, Plus, X, Trash2, FileCheck
+  Dumbbell, Search, Plus, X, Trash2, FileCheck, Sparkles
 } from 'lucide-react';
 
 const navItems = [
@@ -31,6 +32,7 @@ export function AlunoTreinos() {
   const [tab, setTab] = useState<'professor' | 'pessoal'>('professor');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const refreshWorkouts = async () => {
@@ -95,11 +97,37 @@ export function AlunoTreinos() {
             <h1 className="font-display text-2xl font-bold tracking-tight">Meus Treinos</h1>
             <p className="text-muted-foreground text-sm mt-1">Todos os treinos disponíveis para você.</p>
           </div>
-          <Button onClick={() => setShowCreate(!showCreate)} className="gap-1 min-h-[44px]">
-            {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {showCreate ? 'Cancelar' : 'Criar Treino'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => { setShowImport(!showImport); if (!showImport) setShowCreate(false); }}
+              variant={showImport ? 'outline' : 'default'}
+              className={`gap-1 min-h-[44px] ${!showImport ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700' : ''}`}
+            >
+              {showImport ? <X className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+              {showImport ? 'Fechar' : 'Importar com IA'}
+            </Button>
+            <Button
+              onClick={() => { setShowCreate(!showCreate); if (!showCreate) setShowImport(false); }}
+              variant={showCreate ? 'outline' : 'secondary'}
+              className="gap-1 min-h-[44px]"
+            >
+              {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {showCreate ? 'Cancelar' : 'Criar Manual'}
+            </Button>
+          </div>
         </div>
+
+        {/* Import with AI */}
+        {showImport && (
+          <ImportWorkoutAI
+            onClose={() => setShowImport(false)}
+            onSaved={async () => {
+              setShowImport(false);
+              setTab('pessoal');
+              await refreshWorkouts();
+            }}
+          />
+        )}
 
         {/* Create Personal Workout */}
         {showCreate && (
