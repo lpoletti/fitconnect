@@ -15,7 +15,7 @@ import { WorkoutForm } from '@/components/professor/workout-form';
 import { ImportWorkoutAI } from '@/components/aluno/import-workout-ai';
 import {
   LayoutDashboard, ClipboardList, History, Play, Calendar as CalendarIcon,
-  Dumbbell, Search, Plus, X, Trash2, FileCheck, Sparkles
+  Dumbbell, Search, Plus, X, Trash2, FileCheck, Sparkles, EyeOff, Eye, MoreVertical
 } from 'lucide-react';
 
 const navItems = [
@@ -55,10 +55,55 @@ export function AlunoTreinos() {
   const personalWorkouts = (workouts ?? []).filter((w: any) => w?.isPersonal);
   const currentList = tab === 'professor' ? professorWorkouts : personalWorkouts;
 
-  const filteredWorkouts = currentList.filter((w: any) => {
-    if (!searchQuery) return true;
-    return (w?.workoutName ?? '').toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredWorkouts = currentList
+    .filter((w: any) => {
+      if (!searchQuery) return true;
+      return (w?.workoutName ?? '').toLowerCase().includes(searchQuery.toLowerCase());
+    })
+    .sort((a: any, b: any) => {
+      // Active workouts first, inactive last
+      if (a.status === 'inactive' && b.status !== 'inactive') return 1;
+      if (a.status !== 'inactive' && b.status === 'inactive') return -1;
+      return 0;
+    });
+
+  const handleDeleteWorkout = async (workoutId: string, workoutName: string) => {
+    if (!confirm(`Excluir o treino "${workoutName}" permanentemente?`)) return;
+    try {
+      const res = await fetch(`/api/aluno/workouts/${workoutId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Treino excluído!');
+        await refreshWorkouts();
+      } else if (res.status === 409) {
+        toast.error(data?.error ?? 'Treino já utilizado. Desabilite-o.');
+      } else {
+        toast.error(data?.error ?? 'Erro ao excluir.');
+      }
+    } catch {
+      toast.error('Erro ao excluir treino.');
+    }
+  };
+
+  const handleToggleWorkout = async (workoutId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    try {
+      const res = await fetch(`/api/aluno/workouts/${workoutId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        toast.success(newStatus === 'active' ? 'Treino reativado!' : 'Treino desabilitado!');
+        await refreshWorkouts();
+      } else {
+        const data = await res.json();
+        toast.error(data?.error ?? 'Erro ao atualizar.');
+      }
+    } catch {
+      toast.error('Erro ao atualizar treino.');
+    }
+  };
 
   const handleCreateWorkout = async (data: any) => {
     setCreating(true);
@@ -189,32 +234,68 @@ export function AlunoTreinos() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {filteredWorkouts.map((w: any) => (
-              <Link key={w?.id} href={`/aluno/treinos/${w?.id}`} className="block">
-                <div className="bg-card rounded-xl p-5 shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-shadow">
+            {filteredWorkouts.map((w: any) => {
+              const isInactive = w?.status === 'inactive';
+              const isPersonal = w?.isPersonal;
+              const hasLogs = (w?._count?.workoutLogs ?? 0) > 0;
+              return (
+                <div key={w?.id} className={cn('bg-card rounded-xl p-5 shadow-[var(--shadow-md)] transition-all', isInactive ? 'opacity-60' : 'hover:shadow-[var(--shadow-lg)]')}>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Play className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-display font-semibold">{w?.workoutName ?? 'Treino'}</h3>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                        <CalendarIcon className="h-3 w-3" />
-                        Início: {w?.startDate ? format(new Date(w.startDate), "dd 'de' MMM, yyyy", { locale: ptBR }) : '-'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <Badge className="bg-primary/10 text-primary border-primary/20">{(w?.exercises ?? []).length} exercícios</Badge>
-                      {w?.isPersonal ? (
-                        <p className="text-xs text-muted-foreground mt-1">Treino pessoal</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground mt-1">Prof. {w?.professor?.user?.name ?? ''}</p>
+                    <Link href={isInactive ? '#' : `/aluno/treinos/${w?.id}`} className={cn('flex items-center gap-4 flex-1 min-w-0', isInactive && 'pointer-events-none')}>
+                      <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0', isInactive ? 'bg-muted' : 'bg-primary/10')}>
+                        {isInactive ? <EyeOff className="h-6 w-6 text-muted-foreground" /> : <Play className="h-6 w-6 text-primary" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className={cn('font-display font-semibold truncate', isInactive && 'line-through text-muted-foreground')}>
+                          {w?.workoutName ?? 'Treino'}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CalendarIcon className="h-3 w-3" />
+                            {w?.startDate ? format(new Date(w.startDate), "dd 'de' MMM, yyyy", { locale: ptBR }) : '-'}
+                          </p>
+                          {isInactive && (
+                            <span className="text-[10px] font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded">Desabilitado</span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="text-right hidden sm:block">
+                        <Badge className="bg-primary/10 text-primary border-primary/20">{(w?.exercises ?? []).length} ex.</Badge>
+                        {isPersonal ? (
+                          <p className="text-xs text-muted-foreground mt-1">Pessoal</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground mt-1">Prof. {w?.professor?.user?.name ?? ''}</p>
+                        )}
+                      </div>
+                      {isPersonal && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button" size="sm" variant="ghost"
+                            onClick={(e: any) => { e.preventDefault(); handleToggleWorkout(w.id, w.status); }}
+                            className={cn('h-8 w-8 p-0', isInactive ? 'text-green-600 hover:text-green-700' : 'text-amber-500 hover:text-amber-600')}
+                            title={isInactive ? 'Reativar treino' : 'Desabilitar treino'}
+                          >
+                            {isInactive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                          </Button>
+                          {!hasLogs && (
+                            <Button
+                              type="button" size="sm" variant="ghost"
+                              onClick={(e: any) => { e.preventDefault(); handleDeleteWorkout(w.id, w.workoutName); }}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              title="Excluir treino"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

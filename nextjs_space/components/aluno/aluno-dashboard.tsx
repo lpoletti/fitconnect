@@ -69,7 +69,7 @@ export function AlunoDashboard() {
     }
   };
 
-  const workouts = data?.workouts ?? [];
+  const workouts = (data?.workouts ?? []).filter((w: any) => w?.status === 'active');
   const recentLogs = data?.recentLogs ?? [];
 
   return (

@@ -22,12 +22,13 @@ export async function GET() {
       },
     });
 
-    // Get active workouts (both professor-assigned and personal)
+    // Get all workouts (active + inactive, both professor-assigned and personal)
     const workouts = await prisma.assignedWorkout.findMany({
-      where: { studentId, status: 'active' },
+      where: { studentId, status: { in: ['active', 'inactive'] } },
       include: {
         exercises: { orderBy: { order: 'asc' } },
         professor: { include: { user: { select: { name: true } } } },
+        _count: { select: { workoutLogs: true } },
       },
       orderBy: { startDate: 'desc' },
     });
