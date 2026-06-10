@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { WorkoutForm } from '@/components/professor/workout-form';
 import {
   LayoutDashboard, ClipboardList, History, Play, Calendar as CalendarIcon,
   Dumbbell, Search, Plus, X, Trash2, FileCheck
@@ -24,13 +25,6 @@ const navItems = [
   { label: 'Histórico', href: '/aluno/historico', icon: History },
 ];
 
-interface NewExercise {
-  exerciseName: string;
-  sets: number;
-  reps: string;
-  restTime: string;
-}
-
 export function AlunoTreinos() {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +32,14 @@ export function AlunoTreinos() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newExercises, setNewExercises] = useState<NewExercise[]>([
-    { exerciseName: '', sets: 3, reps: '12', restTime: '60s' },
-  ]);
+
+  const refreshWorkouts = async () => {
+    const dashRes = await fetch('/api/aluno/dashboard');
+    if (dashRes.ok) {
+      const d = await dashRes.json();
+      setWorkouts(d?.workouts ?? []);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/aluno/dashboard')
@@ -60,48 +58,27 @@ export function AlunoTreinos() {
     return (w?.workoutName ?? '').toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const addExercise = () => {
-    setNewExercises([...newExercises, { exerciseName: '', sets: 3, reps: '12', restTime: '60s' }]);
-  };
-
-  const removeExercise = (idx: number) => {
-    if (newExercises.length <= 1) return;
-    setNewExercises(newExercises.filter((_, i) => i !== idx));
-  };
-
-  const updateExercise = (idx: number, field: string, value: any) => {
-    const updated = [...newExercises];
-    (updated[idx] as any)[field] = value;
-    setNewExercises(updated);
-  };
-
-  const createWorkout = async () => {
-    if (!newName.trim()) { toast.error('Informe o nome do treino.'); return; }
-    if (newExercises.some(ex => !ex.exerciseName.trim())) {
-      toast.error('Preencha o nome de todos os exercícios.'); return;
-    }
+  const handleCreateWorkout = async (data: any) => {
     setCreating(true);
     try {
       const res = await fetch('/api/aluno/workouts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workoutName: newName, exercises: newExercises }),
+        body: JSON.stringify({
+          workoutName: data.name,
+          category: data.category,
+          description: data.description,
+          exercises: data.exercises,
+        }),
       });
       if (res.ok) {
         toast.success('Treino pessoal criado!');
         setShowCreate(false);
-        setNewName('');
-        setNewExercises([{ exerciseName: '', sets: 3, reps: '12', restTime: '60s' }]);
         setTab('pessoal');
-        // Refresh
-        const dashRes = await fetch('/api/aluno/dashboard');
-        if (dashRes.ok) {
-          const d = await dashRes.json();
-          setWorkouts(d?.workouts ?? []);
-        }
+        await refreshWorkouts();
       } else {
-        const data = await res.json();
-        toast.error(data?.error ?? 'Erro ao criar treino.');
+        const d = await res.json();
+        toast.error(d?.error ?? 'Erro ao criar treino.');
       }
     } catch {
       toast.error('Erro ao criar treino.');
@@ -126,57 +103,13 @@ export function AlunoTreinos() {
 
         {/* Create Personal Workout */}
         {showCreate && (
-          <div className="bg-card rounded-xl p-5 shadow-[var(--shadow-md)] space-y-4">
+          <div className="space-y-4">
             <h2 className="font-display text-lg font-semibold">Novo Treino Pessoal</h2>
-            <div className="space-y-2">
-              <Label>Nome do Treino</Label>
-              <Input placeholder="Ex: Treino de Pernas" value={newName}
-                onChange={(e: any) => setNewName(e.target.value)} className="min-h-[44px]" />
-            </div>
-            <div className="space-y-3">
-              <Label>Exercícios</Label>
-              {newExercises.map((ex, i) => (
-                <div key={i} className="bg-muted/30 rounded-lg p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-primary w-5">{i + 1}</span>
-                    <Input placeholder="Nome do exercício" value={ex.exerciseName}
-                      onChange={(e: any) => updateExercise(i, 'exerciseName', e.target.value)}
-                      className="flex-1 min-h-[40px]" />
-                    {newExercises.length > 1 && (
-                      <Button size="sm" variant="ghost" onClick={() => removeExercise(i)} className="text-destructive min-h-[36px]">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 pl-7">
-                    <div>
-                      <Label className="text-[10px]">Séries</Label>
-                      <Input type="number" value={ex.sets} min={1}
-                        onChange={(e: any) => updateExercise(i, 'sets', parseInt(e.target.value) || 1)}
-                        className="h-8 text-xs" />
-                    </div>
-                    <div>
-                      <Label className="text-[10px]">Repetições</Label>
-                      <Input value={ex.reps}
-                        onChange={(e: any) => updateExercise(i, 'reps', e.target.value)}
-                        className="h-8 text-xs" />
-                    </div>
-                    <div>
-                      <Label className="text-[10px]">Descanso</Label>
-                      <Input value={ex.restTime}
-                        onChange={(e: any) => updateExercise(i, 'restTime', e.target.value)}
-                        className="h-8 text-xs" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={addExercise} className="gap-1 min-h-[36px]">
-                <Plus className="h-3 w-3" /> Adicionar Exercício
-              </Button>
-            </div>
-            <Button onClick={createWorkout} disabled={creating} className="w-full min-h-[44px]">
-              {creating ? 'Criando...' : 'Criar Treino Pessoal'}
-            </Button>
+            <WorkoutForm
+              onSubmit={handleCreateWorkout}
+              submitLabel="Criar Treino Pessoal"
+              loading={creating}
+            />
           </div>
         )}
 

@@ -26,14 +26,45 @@ export async function POST(request: NextRequest) {
         status: 'active',
         startDate: new Date(),
         exercises: {
-          create: exercises.map((ex: any, idx: number) => ({
-            exerciseName: ex.exerciseName?.trim() ?? '',
-            sets: ex.sets ?? 3,
-            reps: ex.reps ?? '12',
-            restTime: ex.restTime ?? '60s',
-            notes: ex.notes ?? null,
-            order: idx,
-          })),
+          create: exercises.map((ex: any, idx: number) => {
+            // Support new format with setsConfig or legacy flat fields
+            const setsConfig = ex?.setsConfig && Array.isArray(ex.setsConfig) && ex.setsConfig.length > 0
+              ? ex.setsConfig
+              : null;
+            const warmupConfig = ex?.warmupConfig && Array.isArray(ex.warmupConfig) && ex.warmupConfig.length > 0
+              ? ex.warmupConfig
+              : null;
+            const sets = setsConfig ? setsConfig.length : (ex.sets ?? 3);
+            const reps = setsConfig ? (setsConfig[0]?.reps ?? '12') : (ex.reps ?? '12');
+            const suggestedWeight = setsConfig ? (setsConfig[0]?.weight ?? '') : (ex.suggestedWeight ?? '');
+            const restTime = setsConfig ? (setsConfig[0]?.restTime ?? '60s') : (ex.restTime ?? '60s');
+
+            const mediaFiles = ex?.mediaFiles && Array.isArray(ex.mediaFiles) && ex.mediaFiles.length > 0
+              ? ex.mediaFiles : null;
+            const mediaUrl = mediaFiles ? mediaFiles[0]?.url : (ex?.mediaUrl ?? null);
+            const mediaType = mediaFiles ? mediaFiles[0]?.type : (ex?.mediaType ?? null);
+            const mediaPath = mediaFiles ? mediaFiles[0]?.path : (ex?.mediaPath ?? null);
+
+            return {
+              exerciseName: ex.exerciseName?.trim() ?? '',
+              sets,
+              reps,
+              suggestedWeight: suggestedWeight || null,
+              restTime: restTime || '60s',
+              notes: ex.notes ?? null,
+              order: idx,
+              hasWarmup: ex.hasWarmup ?? false,
+              warmupSets: warmupConfig ? warmupConfig.length : null,
+              warmupReps: warmupConfig ? (warmupConfig[0]?.reps ?? null) : null,
+              warmupWeight: warmupConfig ? (warmupConfig[0]?.weight ?? null) : null,
+              setsConfig: setsConfig ?? undefined,
+              warmupConfig: warmupConfig ?? undefined,
+              mediaUrl,
+              mediaType,
+              mediaPath,
+              mediaFiles: mediaFiles ?? undefined,
+            };
+          }),
         },
       },
       include: { exercises: true },
