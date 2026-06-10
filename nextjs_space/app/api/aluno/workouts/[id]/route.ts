@@ -19,7 +19,14 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     });
     if (!workout) return NextResponse.json({ error: 'Treino não encontrado' }, { status: 404 });
 
-    return NextResponse.json(workout);
+    // Fetch last completed log for this workout to pre-fill data
+    const lastLog = await prisma.workoutLog.findFirst({
+      where: { assignedWorkoutId: params.id, studentId: session.user.studentId },
+      orderBy: { completedAt: 'desc' },
+      include: { exerciseLogs: true },
+    });
+
+    return NextResponse.json({ ...workout, lastLog: lastLog ?? null });
   } catch (error: any) {
     console.error('Get workout error:', error);
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
