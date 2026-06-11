@@ -31,8 +31,9 @@ interface StudentLink {
   student: {
     id: string;
     user: { name: string; email: string };
+    lastWorkout?: string | null;
+    weeklyProgress?: number | null;
   };
-  lastWorkout?: string | null;
 }
 
 export function ProfessorDashboard() {
