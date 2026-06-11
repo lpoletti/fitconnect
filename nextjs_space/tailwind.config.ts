@@ -17,9 +17,9 @@ const config: Config = {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'gradient-premium': 'linear-gradient(135deg, #10B981, #34D399)',
-        'gradient-card': 'linear-gradient(135deg, rgba(31, 41, 55, 1) 0%, rgba(17, 24, 39, 1) 100%)',
-        'gradient-glass': 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))',
+        'gradient-premium': 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)))',
+        'gradient-card': 'linear-gradient(135deg, hsl(var(--surface)), hsl(var(--background)))',
+        'gradient-glass': 'linear-gradient(135deg, hsl(var(--foreground) / 0.05), hsl(var(--foreground) / 0.02))',
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -34,6 +34,10 @@ const config: Config = {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
+        },
+        surface: {
+          DEFAULT: 'hsl(var(--surface))',
+          elevated: 'hsl(var(--surface-elevated))',
         },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
@@ -65,6 +69,9 @@ const config: Config = {
         },
         warning: {
           DEFAULT: 'hsl(var(--warning))',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -112,8 +119,8 @@ const config: Config = {
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
         'pulse-glow': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(16, 185, 129, 0.15)' },
-          '50%': { boxShadow: '0 0 30px rgba(16, 185, 129, 0.3)' },
+          '0%, 100%': { boxShadow: '0 0 20px hsl(var(--primary) / 0.15)' },
+          '50%': { boxShadow: '0 0 30px hsl(var(--primary) / 0.3)' },
         },
         'progress-fill': {
           from: { width: '0%' },

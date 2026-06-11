@@ -259,7 +259,7 @@ function EvaluationDetail({ evaluation: ev }: { evaluation: any }) {
         )}
         {ev.studentNotes && <p className="text-sm"><span className="text-muted-foreground">Observações:</span> {ev.studentNotes}</p>}
         <div className="flex items-center gap-2 text-sm">
-          <Badge variant={ev.agreedTerms ? 'default' : 'destructive'} className={ev.agreedTerms ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}>
+          <Badge variant={ev.agreedTerms ? 'default' : 'destructive'} className={ev.agreedTerms ? 'bg-primary/10 text-primary border-primary/20' : ''}>
             {ev.agreedTerms ? 'Termo aceito' : 'Termo não aceito'}
           </Badge>
           {ev.signatureName && <span className="text-muted-foreground">Assinatura: {ev.signatureName}</span>}

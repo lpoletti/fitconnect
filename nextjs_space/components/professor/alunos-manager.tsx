@@ -261,12 +261,12 @@ export function AlunosManager() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant={link?.status === 'active' ? 'default' : link?.status === 'pending' ? 'secondary' : 'outline'}
-                      className={link?.status === 'active' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}>
+                      className={link?.status === 'active' ? 'bg-primary/10 text-primary border-primary/20' : ''}>
                       {link?.status === 'active' ? 'Ativo' : link?.status === 'pending' ? 'Pendente' : 'Inativo'}
                     </Badge>
                     {link?.status === 'pending' && (
                       <>
-                        <Button size="sm" variant="outline" className="gap-1 text-emerald-600 min-h-[36px]" onClick={() => updateStatus(link.id, 'active')}>
+                        <Button size="sm" variant="outline" className="gap-1 text-primary min-h-[36px]" onClick={() => updateStatus(link.id, 'active')}>
                           <CheckCircle className="h-3 w-3" /> Aceitar
                         </Button>
                         <Button size="sm" variant="outline" className="gap-1 text-destructive min-h-[36px]" onClick={() => updateStatus(link.id, 'inactive')}>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { StudentCard } from '@/components/fitness/student-card';
 
 const navItems = [
   { label: 'Dashboard', href: '/professor/dashboard', icon: LayoutDashboard },
@@ -75,11 +76,11 @@ export function ProfessorDashboard() {
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
-            <LayoutDashboard className="h-5 w-5 text-[#10B981]" />
+          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+            <LayoutDashboard className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+            <h1 className="font-sans text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
             <p className="text-muted-foreground text-sm">Visao geral da sua conta de professor.</p>
           </div>
         </div>
@@ -120,7 +121,7 @@ export function ProfessorDashboard() {
                   <p className="font-medium text-foreground">Limite de alunos atingido</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Voce atingiu o limite de {maxStudents} alunos ativos no seu plano atual.
-                    {' '}<Link href="/professor/plano" className="text-[#10B981] hover:text-[#34D399] underline underline-offset-2">Faca upgrade</Link>
+                    {' '}<Link href="/professor/plano" className="text-primary hover:text-primary-light underline underline-offset-2">Faca upgrade</Link>
                   </p>
                 </div>
               </motion.div>
@@ -130,10 +131,10 @@ export function ProfessorDashboard() {
             <div className="bg-card rounded-2xl border border-border/50 overflow-hidden">
               <div className="flex items-center justify-between p-5 border-b border-border/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
-                    <Users className="h-4 w-4 text-[#10B981]" />
+                  <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
+                    <Users className="h-4 w-4 text-primary" />
                   </div>
-                  <h2 className="font-display text-lg font-semibold text-foreground">Meus Alunos</h2>
+                  <h2 className="font-sans text-lg font-semibold text-foreground">Meus Alunos</h2>
                 </div>
                 <Link href="/professor/alunos">
                   <Button size="sm" variant="ghost" className="gap-1 text-muted-foreground hover:text-foreground">
@@ -149,38 +150,21 @@ export function ProfessorDashboard() {
                     </div>
                     <p className="text-muted-foreground font-medium">Nenhum aluno vinculado ainda.</p>
                     <Link href="/professor/alunos">
-                      <Button size="sm" className="mt-4 gap-1.5 bg-[#10B981] hover:bg-[#34D399]">
+                      <Button size="sm" className="mt-4 gap-1.5 bg-primary hover:bg-primary-light">
                         <UserPlus className="h-4 w-4" /> Cadastrar Aluno
                       </Button>
                     </Link>
                   </div>
                 ) : (
                   (students ?? []).map((link: StudentLink) => (
-                    <div key={link?.id} className="p-4 flex items-center gap-4 hover:bg-[rgba(255,255,255,0.02)] transition-colors">
-                      <div className="w-11 h-11 rounded-2xl bg-[rgba(16,185,129,0.12)] flex items-center justify-center shrink-0">
-                        <User className="h-5 w-5 text-[#10B981]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">{link?.student?.user?.name ?? 'Aluno'}</p>
-                        <p className="text-xs text-muted-foreground">{link?.student?.user?.email ?? ''}</p>
-                      </div>
-                      <Badge variant="outline" className={cn(
-                        'text-xs font-medium',
-                        link?.status === 'active'
-                          ? 'bg-[rgba(16,185,129,0.1)] text-[#10B981] border-[rgba(16,185,129,0.2)]'
-                          : link?.status === 'pending'
-                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                            : 'bg-muted/30 text-muted-foreground border-border/30'
-                      )}>
-                        {link?.status === 'active' ? 'Ativo' : link?.status === 'pending' ? 'Pendente' : 'Inativo'}
-                      </Badge>
-                      {link?.status === 'active' && (
-                        <Link href={`/professor/alunos/${link?.student?.id}/atribuir-treino`}>
-                          <Button size="sm" variant="outline" className="gap-1.5 border-border/50 hover:bg-[rgba(16,185,129,0.1)] hover:border-[rgba(16,185,129,0.3)]">
-                            <ClipboardList className="h-3 w-3" /> Treino
-                          </Button>
-                        </Link>
-                      )}
+                    <div key={link?.id} className="p-2">
+                      <StudentCard
+                        name={link?.student?.user?.name ?? 'Aluno'}
+                        lastWorkout={link?.student?.lastWorkout ?? 'Nunca'}
+                        weeklyProgress={link?.student?.weeklyProgress ?? 0}
+                        status={link?.status === 'active' ? 'active' : link?.status === 'pending' ? 'inactive' : 'inactive'}
+                        onSelect={() => window.location.href = `/professor/alunos/${link?.student?.id}/atribuir-treino`}
+                      />
                     </div>
                   ))
                 )}

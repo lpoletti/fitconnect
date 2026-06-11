@@ -36,10 +36,10 @@ export function DashboardShell({ children, navItems }: { children: React.ReactNo
           href={userType === 'professor' ? '/professor/dashboard' : '/aluno/dashboard'}
           className="flex items-center gap-2.5 group"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/30 transition-shadow">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/30 transition-shadow">
             <Dumbbell className="h-5 w-5 text-white" />
           </div>
-          <span className="font-display text-lg font-bold tracking-tight">
+          <span className="font-sans text-lg font-bold tracking-tight">
             <span className="text-white">Fit</span>
             <span className="text-gradient">Connect</span>
           </span>
@@ -62,26 +62,26 @@ export function DashboardShell({ children, navItems }: { children: React.ReactNo
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-fast relative',
                 active
                   ? 'text-white'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-[rgba(255,255,255,0.04)]'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
               )}
             >
               {active && (
                 <motion.div
                   layoutId="sidebar-active"
-                  className="absolute inset-0 rounded-lg bg-[rgba(16,185,129,0.15)]"
+                  className="absolute inset-0 rounded-lg bg-primary/15"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
               {active && (
                 <motion.div
                   layoutId="sidebar-border"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-[#10B981]"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-primary"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
               <item.icon className={cn(
                 'h-5 w-5 relative z-10',
-                active ? 'text-[#10B981]' : ''
+                active ? 'text-primary' : ''
               )} />
               <span className="relative z-10">{item.label}</span>
             </Link>
@@ -91,8 +91,8 @@ export function DashboardShell({ children, navItems }: { children: React.ReactNo
 
       {/* User profile */}
       <div className="p-3 border-t border-border/50">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[rgba(255,255,255,0.04)] transition-colors">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center text-white text-sm font-bold shadow-md shrink-0">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center text-white text-sm font-bold shadow-md shrink-0">
             {userInitial}
           </div>
           <div className="flex-1 min-w-0">
@@ -129,7 +129,7 @@ export function DashboardShell({ children, navItems }: { children: React.ReactNo
       </AnimatePresence>
 
       {/* Desktop sidebar - always visible */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-[280px] lg:fixed lg:inset-y-0 z-50 border-r border-border/50 bg-[#0F172A]">
+      <aside className="hidden lg:flex lg:flex-col lg:w-[280px] lg:fixed lg:inset-y-0 z-50 border-r border-border/50 bg-background">
         {sidebarContent}
       </aside>
 
@@ -141,7 +141,7 @@ export function DashboardShell({ children, navItems }: { children: React.ReactNo
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed left-0 top-0 h-full w-72 z-50 bg-[#0F172A] border-r border-border/50 shadow-2xl lg:hidden"
+            className="fixed left-0 top-0 h-full w-72 z-50 bg-background border-r border-border/50 shadow-2xl lg:hidden"
           >
             {sidebarContent}
           </motion.aside>
@@ -149,7 +149,7 @@ export function DashboardShell({ children, navItems }: { children: React.ReactNo
       </AnimatePresence>
 
       {/* Main content area */}
-      <div className="lg:pl-[280px] flex-1 flex flex-col min-h-screen">
+      <div className="lg:pl-[280px] flex-1 flex flex-col min-h-screen min-w-0">
         {/* Top bar */}
         <header className="sticky top-0 z-30 glass-strong h-16 flex items-center gap-4 px-4 lg:px-8">
           <button className="lg:hidden text-muted-foreground hover:text-foreground transition-colors" onClick={() => setSidebarOpen(true)}>
@@ -160,7 +160,7 @@ export function DashboardShell({ children, navItems }: { children: React.ReactNo
             <span className="text-sm text-muted-foreground hidden sm:block">
               Ola, <span className="text-foreground font-medium">{userName?.split(' ')?.[0] ?? 'Usuario'}</span>
             </span>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center text-white text-xs font-bold shadow-md">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center text-white text-xs font-bold shadow-md">
               {userInitial}
             </div>
           </div>

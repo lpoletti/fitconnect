@@ -8,10 +8,10 @@ const inputVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-input hover:border-ring/50 focus-visible:border-input focus-visible:ring-[3px] focus-visible:ring-[rgba(16,185,129,0.15)] focus-visible:ring-offset-0",
+        default: "border-input hover:border-ring/50 focus-visible:border-input focus-visible:ring-[3px] focus-visible:ring-primary/15 focus-visible:ring-offset-0",
         error: "border-destructive hover:border-destructive focus-visible:border-destructive focus-visible:ring-[3px] focus-visible:ring-[rgba(239,68,68,0.15)] focus-visible:ring-offset-0",
-        success: "border-emerald-500 hover:border-emerald-500 focus-visible:border-emerald-500 focus-visible:ring-[3px] focus-visible:ring-[rgba(16,185,129,0.15)] focus-visible:ring-offset-0",
-        ghost: "border-transparent bg-muted/50 hover:bg-muted focus-visible:bg-background focus-visible:border-input focus-visible:ring-[3px] focus-visible:ring-[rgba(16,185,129,0.15)] focus-visible:ring-offset-0",
+        success: "border-primary hover:border-primary focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/15 focus-visible:ring-offset-0",
+        ghost: "border-transparent bg-muted/50 hover:bg-muted focus-visible:bg-background focus-visible:border-input focus-visible:ring-[3px] focus-visible:ring-primary/15 focus-visible:ring-offset-0",
       },
       size: {
         default: "h-12 px-4 py-3",

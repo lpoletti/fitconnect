@@ -177,7 +177,7 @@ export function ProfessorPlano() {
             </button>
           </div>
           {billing === 'annual' && (
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-full">
+            <span className="text-xs font-semibold text-primary bg-primary/5 dark:bg-primary/20 px-2.5 py-1 rounded-full">
               Economize até 25%
             </span>
           )}

@@ -14,9 +14,10 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   LayoutDashboard, ClipboardList, History, Dumbbell,
-  User, Calendar, Play, CheckCircle, Trophy, Link2, FileCheck,
-  Timer, Target, TrendingUp, Weight, Zap, ChevronRight
+  User, Calendar, Trophy, Link2, FileCheck,
+  Timer, TrendingUp, ChevronRight, CheckCircle
 } from 'lucide-react';
+import { WorkoutCard } from '@/components/fitness/workout-card';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -101,11 +102,11 @@ export function AlunoDashboard() {
         {/* Header */}
         <motion.div variants={itemVariants}>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
-              <LayoutDashboard className="h-5 w-5 text-[#10B981]" />
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+              <LayoutDashboard className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+              <h1 className="font-sans text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
               <p className="text-muted-foreground text-sm">Acompanhe seus treinos e evolucao.</p>
             </div>
           </div>
@@ -155,15 +156,15 @@ export function AlunoDashboard() {
             {/* Link Professor Card - when no professor linked */}
             {!data?.professor && (
               <motion.div variants={itemVariants}>
-                <div className="relative bg-card rounded-2xl p-6 border border-dashed border-[rgba(16,185,129,0.2)] overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[rgba(16,185,129,0.03)] to-transparent pointer-events-none" />
+                <div className="relative bg-card rounded-2xl p-6 border border-dashed border-primary/20 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
                   <div className="relative flex items-start gap-5">
-                    <div className="w-14 h-14 rounded-2xl bg-[rgba(16,185,129,0.15)] flex items-center justify-center shrink-0">
-                      <Link2 className="h-7 w-7 text-[#10B981]" />
+                    <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center shrink-0">
+                      <Link2 className="h-7 w-7 text-primary" />
                     </div>
                     <div className="flex-1 space-y-4">
                       <div>
-                        <h3 className="font-display font-semibold text-lg text-foreground">Vincular Professor</h3>
+                        <h3 className="font-sans font-semibold text-lg text-foreground">Vincular Professor</h3>
                         <p className="text-sm text-muted-foreground mt-1">
                           Tem um codigo de convite? Insira abaixo para vincular com seu professor e comecar a treinar.
                         </p>
@@ -175,14 +176,14 @@ export function AlunoDashboard() {
                             placeholder="Ex: ABC123"
                             value={inviteCode}
                             onChange={(e: any) => setInviteCode(e.target.value.toUpperCase())}
-                            className="pl-10 min-h-[48px] font-mono tracking-wider bg-secondary/50 border-border/50 focus:border-[#10B981]/50"
+                            className="pl-10 min-h-[48px] font-mono tracking-wider bg-secondary/50 border-border/50 focus:border-primary/50"
                             maxLength={6}
                           />
                         </div>
                         <Button
                           onClick={handleLinkProfessor}
                           disabled={linking || !inviteCode.trim()}
-                          className="min-h-[48px] px-6 gap-2 bg-[#10B981] hover:bg-[#34D399] text-white"
+                          className="min-h-[48px] px-6 gap-2 bg-primary hover:bg-primary-light text-white"
                         >
                           <Link2 className="h-4 w-4" />
                           {linking ? 'Vinculando...' : 'Vincular'}
@@ -198,18 +199,18 @@ export function AlunoDashboard() {
             {data?.professor && (
               <motion.div variants={itemVariants}>
                 <div className="relative bg-card rounded-2xl p-5 border border-border/50 overflow-hidden group hover:border-border/80 transition-all card-hover cursor-default">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[rgba(16,185,129,0.03)] to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
                   <div className="relative flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
-                      <User className="h-7 w-7 text-[#10B981]" />
+                    <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center">
+                      <User className="h-7 w-7 text-primary" />
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Seu Professor</p>
-                      <p className="font-display font-semibold text-lg text-foreground">{data.professor.name}</p>
+                      <p className="font-sans font-semibold text-lg text-foreground">{data.professor.name}</p>
                       <p className="text-sm text-muted-foreground">{data.professor.specialty}</p>
                     </div>
                     <div className="ml-auto hidden sm:block">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/30" />
+                      <div className="w-2 h-2 rounded-full bg-primary shadow-lg shadow-primary/30" />
                     </div>
                   </div>
                 </div>
@@ -221,10 +222,10 @@ export function AlunoDashboard() {
               <div className="relative bg-card rounded-2xl border border-border/50 overflow-hidden">
                 <div className="flex items-center justify-between p-5 border-b border-border/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
-                      <Dumbbell className="h-4 w-4 text-[#10B981]" />
+                    <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
+                      <Dumbbell className="h-4 w-4 text-primary" />
                     </div>
-                    <h2 className="font-display text-lg font-semibold text-foreground">Treinos Ativos</h2>
+                    <h2 className="font-sans text-lg font-semibold text-foreground">Treinos Ativos</h2>
                   </div>
                   <Link href="/aluno/treinos">
                     <Button size="sm" variant="ghost" className="gap-1 text-muted-foreground hover:text-foreground">
@@ -242,28 +243,22 @@ export function AlunoDashboard() {
                       <p className="text-sm text-muted-foreground/70 mt-1">Seu professor atribuira treinos em breve.</p>
                     </div>
                   ) : (
-                    workouts.map((w: any, idx: number) => (
-                      <Link key={w?.id} href={`/aluno/treinos/${w?.id}`} className="block group/item">
-                        <div className="p-4 hover:bg-[rgba(255,255,255,0.02)] transition-colors flex items-center gap-4">
-                          <div className={cn(
-                            'w-11 h-11 rounded-xl flex items-center justify-center shrink-0',
-                            'bg-[rgba(16,185,129,0.12)] group-hover/item:bg-[rgba(16,185,129,0.18)] transition-colors'
-                          )}>
-                            <Play className="h-5 w-5 text-[#10B981]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate">{w?.workoutName ?? 'Treino'}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              <Calendar className="h-3 w-3" />
-                              Inicio: {w?.startDate ? format(new Date(w.startDate), "dd 'de' MMM, yyyy", { locale: ptBR }) : '-'}
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="border-[rgba(16,185,129,0.2)] text-[#10B981] bg-[rgba(16,185,129,0.08)] text-xs font-medium">
-                            {(w?.exercises ?? []).length} exercicios
-                          </Badge>
-                        </div>
-                      </Link>
-                    ))
+                    <div className="space-y-1 p-4">
+                      {workouts.map((w: any) => (
+                        <Link key={w?.id} href={`/aluno/treinos/${w?.id}`}>
+                          <WorkoutCard
+                            name={w?.workoutName ?? 'Treino'}
+                            exercises={w?.exercises?.length ?? 0}
+                            duration={w?.estimatedDuration ?? 45}
+                            difficulty={
+                              w?.difficulty === 'beginner' ? 'beginner'
+                              : w?.difficulty === 'advanced' ? 'advanced'
+                              : 'intermediate'
+                            }
+                          />
+                        </Link>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -274,10 +269,10 @@ export function AlunoDashboard() {
               <div className="relative bg-card rounded-2xl border border-border/50 overflow-hidden">
                 <div className="flex items-center justify-between p-5 border-b border-border/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                      <History className="h-4 w-4 text-emerald-400" />
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <History className="h-4 w-4 text-primary-light" />
                     </div>
-                    <h2 className="font-display text-lg font-semibold text-foreground">Historico Recente</h2>
+                    <h2 className="font-sans text-lg font-semibold text-foreground">Historico Recente</h2>
                   </div>
                   <Link href="/aluno/historico">
                     <Button size="sm" variant="ghost" className="gap-1 text-muted-foreground hover:text-foreground">
@@ -296,9 +291,9 @@ export function AlunoDashboard() {
                     </div>
                   ) : (
                     recentLogs.map((log: any) => (
-                      <div key={log?.id} className="p-4 flex items-center gap-3 hover:bg-[rgba(255,255,255,0.02)] transition-colors">
-                        <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
-                          <CheckCircle className="h-4 w-4 text-emerald-400" />
+                      <div key={log?.id} className="p-4 flex items-center gap-3 hover:bg-white/5 transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                          <CheckCircle className="h-4 w-4 text-primary-light" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground">{log?.assignedWorkout?.workoutName ?? 'Treino'}</p>

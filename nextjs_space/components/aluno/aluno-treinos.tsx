@@ -146,11 +146,11 @@ export function AlunoTreinos() {
         {/* Header */}
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
-              <ClipboardList className="h-5 w-5 text-[#10B981]" />
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+              <ClipboardList className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Meus Treinos</h1>
+              <h1 className="font-sans text-2xl font-bold tracking-tight text-foreground">Meus Treinos</h1>
               <p className="text-muted-foreground text-sm">Todos os treinos disponiveis para voce.</p>
             </div>
           </div>
@@ -201,7 +201,7 @@ export function AlunoTreinos() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-card rounded-2xl p-6 border border-border/50 space-y-4"
           >
-            <h2 className="font-display text-lg font-semibold text-foreground">Novo Treino Pessoal</h2>
+            <h2 className="font-sans text-lg font-semibold text-foreground">Novo Treino Pessoal</h2>
             <WorkoutForm
               onSubmit={handleCreateWorkout}
               submitLabel="Criar Treino Pessoal"
@@ -241,7 +241,7 @@ export function AlunoTreinos() {
             placeholder="Buscar treino..."
             value={searchQuery}
             onChange={(e: any) => setSearchQuery(e.target.value)}
-            className="pl-10 min-h-[48px] bg-card border-border/50 focus:border-[#10B981]/40 rounded-xl"
+            className="pl-10 min-h-[48px] bg-card border-border/50 focus:border-primary/40 rounded-xl"
           />
         </div>
 
@@ -261,7 +261,7 @@ export function AlunoTreinos() {
                 tab === 'professor' ? 'Nenhum treino atribuido pelo professor.' : 'Nenhum treino pessoal criado.'}
             </p>
             {tab === 'pessoal' && !searchQuery && (
-              <Button className="mt-4 gap-1.5 bg-[#10B981] hover:bg-[#34D399]" onClick={() => setShowCreate(true)}>
+              <Button className="mt-4 gap-1.5 bg-primary hover:bg-primary-light" onClick={() => setShowCreate(true)}>
                 <Plus className="h-4 w-4" /> Criar Primeiro Treino
               </Button>
             )}
@@ -289,11 +289,11 @@ export function AlunoTreinos() {
                     >
                       <div className={cn(
                         'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-                        isInactive ? 'bg-muted/50' : 'bg-[rgba(16,185,129,0.12)]'
+                        isInactive ? 'bg-muted/50' : 'bg-primary/10'
                       )}>
                         {isInactive
                           ? <EyeOff className="h-6 w-6 text-muted-foreground" />
-                          : <Play className="h-6 w-6 text-[#10B981]" />
+                          : <Play className="h-6 w-6 text-primary" />
                         }
                       </div>
                       <div className="min-w-0 flex-1">
@@ -313,7 +313,7 @@ export function AlunoTreinos() {
                     </Link>
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="text-right hidden sm:block">
-                        <Badge variant="outline" className="border-[rgba(16,185,129,0.2)] text-[#10B981] bg-[rgba(16,185,129,0.08)] text-xs">
+                        <Badge variant="outline" className="border-primary/20 text-primary bg-primary/10 text-xs">
                           {(w?.exercises ?? []).length} ex.
                         </Badge>
                         {isPersonal ? (
@@ -326,7 +326,7 @@ export function AlunoTreinos() {
                         <div className="flex items-center gap-1">
                           {!isInactive && (
                             <Link href={`/aluno/treinos/${w.id}/editar`} onClick={(e: any) => e.stopPropagation()}>
-                              <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-[#10B981]">
+                              <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </Link>
@@ -334,7 +334,7 @@ export function AlunoTreinos() {
                           <Button
                             type="button" size="sm" variant="ghost"
                             onClick={(e: any) => { e.preventDefault(); handleToggleWorkout(w.id, w.status); }}
-                            className={cn('h-8 w-8 p-0', isInactive ? 'text-emerald-400 hover:text-emerald-300' : 'text-amber-400 hover:text-amber-300')}
+                            className={cn('h-8 w-8 p-0', isInactive ? 'text-primary-light hover:text-primary-light' : 'text-amber-400 hover:text-amber-300')}
                             title={isInactive ? 'Reativar treino' : 'Desabilitar treino'}
                           >
                             {isInactive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}

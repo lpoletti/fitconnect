@@ -148,11 +148,11 @@ export function WorkoutCalendar() {
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
-            <CalendarIcon className="h-5 w-5 text-[#10B981]" />
+          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+            <CalendarIcon className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Calendario de Treinos</h1>
+            <h1 className="font-sans text-2xl font-bold tracking-tight text-foreground">Calendario de Treinos</h1>
             <p className="text-muted-foreground text-sm">Acompanhe seus treinos dia a dia</p>
           </div>
         </div>
@@ -161,21 +161,21 @@ export function WorkoutCalendar() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-card rounded-2xl p-4 border border-border/50">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Treinos no mes</p>
-            <p className="font-display text-2xl font-bold text-[#10B981] mt-1">{totalThisMonth}</p>
+            <p className="font-sans text-2xl font-bold text-primary mt-1">{totalThisMonth}</p>
           </div>
           <div className="bg-card rounded-2xl p-4 border border-border/50">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Dias ativos</p>
-            <p className="font-display text-2xl font-bold text-emerald-400 mt-1">{uniqueDays}</p>
+            <p className="font-sans text-2xl font-bold text-primary-light mt-1">{uniqueDays}</p>
           </div>
           <div className="bg-card rounded-2xl p-4 border border-border/50">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Frequencia</p>
-            <p className="font-display text-2xl font-bold text-blue-400 mt-1">
+            <p className="font-sans text-2xl font-bold text-blue-400 mt-1">
               {daysInMonth > 0 ? Math.round((uniqueDays / daysInMonth) * 100) : 0}%
             </p>
           </div>
           <div className="bg-card rounded-2xl p-4 border border-border/50">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Media semanal</p>
-            <p className="font-display text-2xl font-bold text-foreground mt-1">
+            <p className="font-sans text-2xl font-bold text-foreground mt-1">
               {daysInMonth > 0 ? (totalThisMonth / Math.ceil(daysInMonth / 7)).toFixed(1) : 0}
             </p>
           </div>
@@ -189,10 +189,10 @@ export function WorkoutCalendar() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="text-center">
-              <h2 className="font-display font-semibold text-foreground">
+              <h2 className="font-sans font-semibold text-foreground">
                 {MONTHS[currentMonth.month]} {currentMonth.year}
               </h2>
-              <button onClick={goToToday} className="text-xs text-[#10B981] hover:text-[#34D399] mt-0.5 transition-colors">
+              <button onClick={goToToday} className="text-xs text-primary hover:text-primary-light mt-0.5 transition-colors">
                 Hoje
               </button>
             </div>
@@ -224,23 +224,23 @@ export function WorkoutCalendar() {
                   onClick={() => setSelectedDate(isSelected ? null : day.dateKey)}
                   className={cn(
                     'relative min-h-[56px] sm:min-h-[72px] p-1.5 border-b border-r border-border/20 transition-all text-left group',
-                    !day.isCurrentMonth ? 'text-muted-foreground/20 bg-muted/10' : 'hover:bg-[rgba(255,255,255,0.02)]',
-                    isSelected ? 'bg-[rgba(16,185,129,0.08)] ring-1 ring-[rgba(16,185,129,0.3)]' : '',
+                    !day.isCurrentMonth ? 'text-muted-foreground/20 bg-muted/10' : 'hover:bg-white/5',
+                    isSelected ? 'bg-primary/10 ring-1 ring-primary/30' : '',
                   )}
                 >
                   <span className={cn(
                     'inline-flex items-center justify-center text-xs font-medium w-7 h-7 rounded-full',
-                    isToday ? 'bg-[#10B981] text-white font-bold' : 'text-foreground'
+                    isToday ? 'bg-primary text-white font-bold' : 'text-foreground'
                   )}>
                     {day.day}
                   </span>
                   {hasWorkout && (
                     <div className="mt-0.5 flex flex-wrap gap-0.5 px-0.5">
                       {workoutsOnDay.slice(0, 3).map((_, wi) => (
-                        <span key={wi} className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/30" />
+                        <span key={wi} className="w-1.5 h-1.5 rounded-full bg-primary shadow-sm shadow-primary/30" />
                       ))}
                       {workoutsOnDay.length > 3 && (
-                        <span className="text-[8px] text-emerald-400 font-bold ml-0.5">+{workoutsOnDay.length - 3}</span>
+                        <span className="text-[8px] text-primary-light font-bold ml-0.5">+{workoutsOnDay.length - 3}</span>
                       )}
                     </div>
                   )}
@@ -257,8 +257,8 @@ export function WorkoutCalendar() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-card rounded-2xl p-5 border border-border/50 space-y-4"
           >
-            <h3 className="font-display font-semibold flex items-center gap-2.5 text-foreground">
-              <CalendarIcon className="h-4 w-4 text-[#10B981]" />
+            <h3 className="font-sans font-semibold flex items-center gap-2.5 text-foreground">
+              <CalendarIcon className="h-4 w-4 text-primary" />
               {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', {
                 weekday: 'long', day: 'numeric', month: 'long'
               })}
@@ -276,7 +276,7 @@ export function WorkoutCalendar() {
                   <div key={log.id} className="bg-muted/20 rounded-xl p-4 space-y-2 border border-border/20">
                     <div className="flex items-center justify-between">
                       <p className="font-medium text-sm flex items-center gap-2 text-foreground">
-                        <Trophy className="h-4 w-4 text-emerald-500" />
+                        <Trophy className="h-4 w-4 text-primary" />
                         {log.assignedWorkout?.workoutName ?? 'Treino'}
                       </p>
                       <span className="text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
@@ -286,7 +286,7 @@ export function WorkoutCalendar() {
                     <div className="flex flex-wrap gap-1.5">
                       {(log.exerciseLogs ?? []).map((el: any, ei: number) => (
                         <Badge key={ei} variant="outline" className="text-[10px] py-0.5 border-border/30 bg-card">
-                          <Dumbbell className="h-2.5 w-2.5 mr-1 text-[#10B981]" />
+                          <Dumbbell className="h-2.5 w-2.5 mr-1 text-primary" />
                           {el.exerciseName}
                         </Badge>
                       ))}

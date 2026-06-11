@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { ProgressRing } from '@/components/fitness/progress-ring';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, ClipboardList, History, ArrowLeft, Pencil,
@@ -33,14 +34,14 @@ function CircularRestMini({ seconds, total, onSkip }: { seconds: number; total: 
       title="Pular descanso"
     >
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(16,185,129,0.15)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#10B981" strokeWidth={stroke}
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--primary) / 0.15)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--primary))" strokeWidth={stroke}
           strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
           className="transition-all duration-1000 ease-linear" />
       </svg>
       <span className="absolute text-[10px] font-bold text-white font-mono">{seconds}</span>
-      <div className="absolute inset-0 rounded-full bg-[rgba(16,185,129,0.1)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-        <SkipForward className="h-3 w-3 text-[#10B981]" />
+      <div className="absolute inset-0 rounded-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        <SkipForward className="h-3 w-3 text-primary" />
       </div>
     </button>
   );
@@ -118,16 +119,14 @@ function buildExerciseState(ex: any, lastExLog?: any): ExerciseState {
 }
 
 function CircularProgress({ percent, size = 44, stroke = 3, className = '' }: { percent: number; size?: number; stroke?: number; className?: string }) {
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percent / 100) * circumference;
-  const color = percent === 100 ? '#10b981' : percent > 0 ? '#f59e0b' : '#374151';
+  const color = percent === 100 ? 'hsl(var(--primary))' : percent > 0 ? 'hsl(var(--warning))' : 'hsl(var(--surface-elevated))';
   return (
     <div className={cn('relative inline-flex items-center justify-center', className)} style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-muted/20" />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={stroke}
-          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-700 ease-out" />
+        <circle cx={size / 2} cy={size / 2} r={(size - stroke) / 2} fill="none" stroke="hsl(var(--surface-elevated))" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={(size - stroke) / 2} fill="none" stroke={color} strokeWidth={stroke}
+          strokeDasharray={2 * Math.PI * (size - stroke) / 2} strokeDashoffset={2 * Math.PI * (size - stroke) / 2 - (percent / 100) * 2 * Math.PI * (size - stroke) / 2}
+          strokeLinecap="round" className="transition-all duration-700 ease-out" />
       </svg>
       <span className="absolute text-[10px] font-bold" style={{ color }}>{Math.round(percent)}%</span>
     </div>
@@ -150,15 +149,15 @@ const SetRow = memo(function SetRow({
       className={cn(
         'flex items-center gap-3 p-3 min-h-[52px] rounded-xl border transition-all duration-200 cursor-pointer select-none',
         completed
-          ? `${isWarmup ? 'bg-orange-500/8' : 'bg-[rgba(16,185,129,0.06)]'} border-transparent`
-          : 'bg-secondary/30 border-border/30 hover:border-border/60 hover:bg-[rgba(16,185,129,0.03)]'
+          ? `${isWarmup ? 'bg-orange-500/8' : 'bg-primary/5'} border-transparent`
+          : 'bg-secondary/30 border-border/30 hover:border-border/60 hover:bg-primary/5'
       )}
     >
       <div
         className={cn(
           'w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all shrink-0',
           completed
-            ? `${isWarmup ? 'bg-orange-500 border-orange-500' : 'bg-[#10B981] border-[#10B981]'} scale-100`
+            ? `${isWarmup ? 'bg-orange-500 border-orange-500' : 'bg-primary border-primary'} scale-100`
             : 'border-muted-foreground/30'
         )}
       >
@@ -169,7 +168,7 @@ const SetRow = memo(function SetRow({
 
       <span className={cn(
         'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0',
-        isWarmup ? 'bg-orange-500/15 text-orange-400' : 'bg-[rgba(16,185,129,0.12)] text-[#10B981]'
+        isWarmup ? 'bg-orange-500/15 text-orange-400' : 'bg-primary/10 text-primary'
       )}>
         {label}
       </span>
@@ -184,7 +183,7 @@ const SetRow = memo(function SetRow({
               type="text" value={reps}
               onChange={(e) => onUpdateReps?.(e.target.value)}
               onClick={(e) => e.stopPropagation()}
-              className="w-full bg-transparent text-foreground/80 text-sm border-b border-transparent focus:border-[#10B981]/40 outline-none transition-colors px-1 py-0.5"
+              className="w-full bg-transparent text-foreground/80 text-sm border-b border-transparent focus:border-primary/40 outline-none transition-colors px-1 py-0.5"
               style={{ width: `${Math.max(reps.length * 9, 24)}px` }}
             />
           )}
@@ -199,7 +198,7 @@ const SetRow = memo(function SetRow({
                 type="text" value={weight}
                 onChange={(e) => onUpdateWeight?.(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full bg-transparent text-foreground/80 text-sm border-b border-transparent focus:border-[#10B981]/40 outline-none transition-colors px-1 py-0.5"
+                className="w-full bg-transparent text-foreground/80 text-sm border-b border-transparent focus:border-primary/40 outline-none transition-colors px-1 py-0.5"
                 style={{ width: `${Math.max(weight.length * 9, 28)}px` }}
               />
               <span className="text-xs text-muted-foreground">{isWarmup ? '%' : 'kg'}</span>
@@ -215,7 +214,7 @@ const SetRow = memo(function SetRow({
               type="text" value={restTime}
               onChange={(e) => onUpdateRest?.(e.target.value)}
               onClick={(e) => e.stopPropagation()}
-              className="w-full bg-transparent text-foreground/80 text-sm border-b border-transparent focus:border-[#10B981]/40 outline-none transition-colors px-1 py-0.5"
+              className="w-full bg-transparent text-foreground/80 text-sm border-b border-transparent focus:border-primary/40 outline-none transition-colors px-1 py-0.5"
               style={{ width: `${Math.max(restTime.length * 9, 28)}px` }}
             />
           )}
@@ -454,7 +453,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
         {!loading && workout && (
           <div className="glass-strong rounded-2xl p-4 flex items-center gap-4">
             <div className="flex items-center gap-2.5">
-              <Timer className="h-4 w-4 text-[#10B981]" />
+              <Timer className="h-4 w-4 text-primary" />
               <span className="font-mono text-lg font-bold tracking-wider text-white">{elapsed}</span>
             </div>
             <div className="flex-1">
@@ -477,7 +476,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
         {/* Last log info */}
         {workout?.lastLog && (
           <div className="flex items-center gap-2 px-1">
-            <RotateCcw className="h-3.5 w-3.5 text-[#10B981]" />
+            <RotateCcw className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs text-muted-foreground">Dados do ultimo treino pre-carregados</span>
           </div>
         )}
@@ -526,10 +525,10 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                   className={cn(
                     'relative rounded-2xl border overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.20)]',
                     allExDone
-                      ? 'bg-[rgba(34,197,94,0.10)] border-[#22C55E]'
+                      ? 'bg-[rgba(34,197,94,0.10)] border-success'
                       : isExpanded
                         ? 'bg-card border-border/50'
-                        : 'bg-[#1F2937] border-[#374151] hover:border-border/80'
+                        : 'bg-surface border-border hover:border-border/80'
                   )}
                   style={isExpanded ? {
                     background: 'linear-gradient(90deg, rgba(16,185,129,0.15), transparent)',
@@ -537,7 +536,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                 >
                   {/* Left accent border when expanded */}
                   {isExpanded && (
-                    <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#10B981] rounded-r-full" />
+                    <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary rounded-r-full" />
                   )}
 
                   {/* Exercise header */}
@@ -556,14 +555,14 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                         )}
                       </div>
                     ) : (
-                      <div className="w-14 h-14 rounded-xl bg-[rgba(16,185,129,0.1)] flex items-center justify-center shrink-0">
-                        <Dumbbell className="h-6 w-6 text-[#10B981]/60" />
+                      <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Dumbbell className="h-6 w-6 text-primary/60" />
                       </div>
                     )}
 
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-muted-foreground">{es.hasWarmup ? 'Com aquecimento' : 'Serie normal'}</p>
-                      <p className={cn('font-bold text-base truncate mt-0.5', allExDone && 'text-[#10B981]')}>
+                      <p className={cn('font-bold text-base truncate mt-0.5', allExDone && 'text-primary')}>
                         {es.exerciseName}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -660,7 +659,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                             <button
                               type="button"
                               onClick={() => markExerciseCompleted(i)}
-                              className="w-full text-center text-xs text-[#10B981]/80 hover:text-[#10B981] py-2.5 flex items-center justify-center gap-1.5 border-t border-border/30 mt-3 transition-colors"
+                              className="w-full text-center text-xs text-primary/80 hover:text-primary py-2.5 flex items-center justify-center gap-1.5 border-t border-border/30 mt-3 transition-colors"
                             >
                               <CheckCheck className="h-3.5 w-3.5" /> Concluir todos os exercicios
                             </button>
@@ -681,7 +680,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                   value={notes}
                   onChange={(e: any) => setNotes(e.target.value)}
                   placeholder="Como foi o treino hoje?"
-                  className="bg-secondary/30 border-border/30 focus:border-[#10B981]/40"
+                  className="bg-secondary/30 border-border/30 focus:border-primary/40"
                 />
               </div>
 
@@ -689,7 +688,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                 <Button
                   onClick={handleComplete}
                   disabled={!allCompleted || saving}
-                  className="flex-1 gap-2 min-h-[52px] rounded-xl text-base font-semibold bg-[#10B981] hover:bg-[#34D399] text-white disabled:opacity-40"
+                  className="flex-1 gap-2 min-h-[52px] rounded-xl text-base font-semibold bg-primary hover:bg-primary-light text-white disabled:opacity-40"
                 >
                   {saving ? (
                     <>Salvando...</>

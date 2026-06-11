@@ -11,10 +11,11 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   LayoutDashboard, ClipboardList, History, Trophy,
-  Calendar as CalendarIcon, CheckCircle, ChevronDown, ChevronUp, Filter, FileCheck
+  Calendar as CalendarIcon, Filter, FileCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { WorkoutHistoryCard } from '@/components/fitness/workout-history-card';
 
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
@@ -64,11 +65,11 @@ export function AlunoHistorico() {
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
-            <History className="h-5 w-5 text-[#10B981]" />
+          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+            <History className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Historico de Treinos</h1>
+            <h1 className="font-sans text-2xl font-bold tracking-tight text-foreground">Historico de Treinos</h1>
             <p className="text-muted-foreground text-sm">Acompanhe todos os treinos executados.</p>
           </div>
         </div>
@@ -116,32 +117,26 @@ export function AlunoHistorico() {
           ) : (
             logs.map((log: any, idx: number) => {
               const isExpanded = expandedLog === log?.id;
+              const volume = log?.exerciseLogs?.reduce((acc: number, el: any) => {
+                return acc + (parseInt(el?.weightUsed) || 0) * (parseInt(el?.repsCompleted) || 0);
+              }, 0);
               return (
                 <motion.div
                   key={log?.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.03 }}
-                  className="bg-card rounded-2xl border border-border/50 overflow-hidden"
                 >
-                  <button
-                    onClick={() => setExpandedLog(isExpanded ? null : log?.id)}
-                    className="w-full p-4 flex items-center gap-4 hover:bg-[rgba(255,255,255,0.02)] transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <CheckCircle className="h-5 w-5 text-emerald-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground">{log?.assignedWorkout?.workoutName ?? 'Treino'}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {log?.completedAt ? format(new Date(log.completedAt), "dd/MM/yyyy 'as' HH:mm") : '-'}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-full shrink-0">
-                      {(log?.exerciseLogs ?? []).length} exercicios
-                    </span>
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                  </button>
+                  <div className="cursor-pointer" onClick={() => setExpandedLog(isExpanded ? null : log?.id)}>
+                    <WorkoutHistoryCard
+                      date={log?.completedAt ? format(new Date(log.completedAt), "dd/MM/yyyy") : '-'}
+                      name={log?.assignedWorkout?.workoutName ?? 'Treino'}
+                      duration={log?.durationMinutes ?? 0}
+                      volume={volume}
+                      exercises={(log?.exerciseLogs ?? []).length}
+                      improved={idx === 0}
+                    />
+                  </div>
                   <AnimatePresence>
                     {isExpanded && (
                       <motion.div
@@ -150,10 +145,10 @@ export function AlunoHistorico() {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="border-t border-border/30 p-4 space-y-2 bg-muted/10">
+                        <div className="border-t border-border/30 p-4 space-y-2 bg-muted/10 rounded-b-2xl">
                           {(log?.exerciseLogs ?? []).map((el: any, i: number) => (
                             <div key={el?.id ?? i} className="flex items-center gap-3 text-sm bg-card/50 rounded-xl p-3 border border-border/20">
-                              <span className="w-7 h-7 rounded-lg bg-[rgba(16,185,129,0.1)] flex items-center justify-center text-xs font-bold text-[#10B981] shrink-0">
+                              <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
                                 {i + 1}
                               </span>
                               <span className="flex-1 font-medium text-foreground">{el?.exerciseName ?? 'Exercicio'}</span>

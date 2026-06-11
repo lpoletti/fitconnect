@@ -16,16 +16,16 @@ interface StatCardProps {
 export function StatCard({ title, value, icon: Icon, description, variant = 'default', trend }: StatCardProps) {
   const variants = {
     default: {
-      iconBg: 'bg-[rgba(16,185,129,0.15)]',
-      iconColor: 'text-[#10B981]',
-      accent: 'bg-[#10B981]',
-      ring: 'ring-[rgba(16,185,129,0.2)]',
+      iconBg: 'bg-primary/15',
+      iconColor: 'text-primary',
+      accent: 'bg-primary',
+      ring: 'ring-primary/20',
     },
     success: {
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-400',
-      accent: 'bg-emerald-500',
-      ring: 'ring-emerald-500/20',
+      iconBg: 'bg-primary/15',
+      iconColor: 'text-primary-light',
+      accent: 'bg-primary',
+      ring: 'ring-primary/20',
     },
     warning: {
       iconBg: 'bg-amber-500/15',
@@ -77,7 +77,7 @@ export function StatCard({ title, value, icon: Icon, description, variant = 'def
           <div className="mt-3 flex items-center gap-1.5 text-xs">
             <span className={cn(
               'font-medium',
-              trend.positive ? 'text-emerald-400' : 'text-red-400'
+              trend.positive ? 'text-primary-light' : 'text-red-400'
             )}>
               {trend.positive ? '+' : ''}{trend.value}
             </span>

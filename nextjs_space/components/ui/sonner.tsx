@@ -18,10 +18,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
             'group toast group-[.toaster]:bg-card group-[.toaster]:text-foreground group-[.toaster]:border-border/50 group-[.toaster]:shadow-lg group-[.toaster]:backdrop-blur-xl group-[.toaster]:rounded-2xl',
           description: 'group-[.toast]:text-muted-foreground',
           actionButton:
-            'group-[.toast]:bg-[#10B981] group-[.toast]:text-white group-[.toast]:rounded-lg group-[.toast]:hover:bg-[#34D399]',
+            'group-[.toast]:bg-primary group-[.toast]:text-white group-[.toast]:rounded-lg group-[.toast]:hover:bg-primary-light',
           cancelButton:
             'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground group-[.toast]:rounded-lg',
-          success: 'group-[.toaster]:border-emerald-500/20',
+          success: 'group-[.toaster]:border-primary/20',
           error: 'group-[.toaster]:border-red-500/20',
         },
       }}

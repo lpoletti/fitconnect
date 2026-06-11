@@ -48,11 +48,11 @@ export function AlunoAvaliacoes() {
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
-            <FileCheck className="h-5 w-5 text-[#10B981]" />
+          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+            <FileCheck className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Minhas Avaliacoes</h1>
+            <h1 className="font-sans text-2xl font-bold tracking-tight text-foreground">Minhas Avaliacoes</h1>
             <p className="text-muted-foreground text-sm">Acompanhe suas avaliacoes fisicas realizadas pelo professor.</p>
           </div>
         </div>
@@ -62,23 +62,23 @@ export function AlunoAvaliacoes() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-card rounded-2xl p-4 border border-border/50">
               <p className="text-xs text-muted-foreground">Total</p>
-              <p className="font-display text-2xl font-bold text-[#10B981]">{evaluations.length}</p>
+              <p className="font-sans text-2xl font-bold text-primary">{evaluations.length}</p>
             </div>
             <div className="bg-card rounded-2xl p-4 border border-border/50">
               <p className="text-xs text-muted-foreground">Peso Atual</p>
-              <p className="font-display text-2xl font-bold text-foreground">
+              <p className="font-sans text-2xl font-bold text-foreground">
                 {evaluations[0]?.weight ?? '-'} <span className="text-sm text-muted-foreground">kg</span>
               </p>
             </div>
             <div className="bg-card rounded-2xl p-4 border border-border/50">
               <p className="text-xs text-muted-foreground">Meta Principal</p>
-              <p className="font-display text-lg font-bold text-foreground truncate">
+              <p className="font-sans text-lg font-bold text-foreground truncate">
                 {evaluations[0]?.mainGoal ?? '-'}
               </p>
             </div>
             <div className="bg-card rounded-2xl p-4 border border-border/50">
               <p className="text-xs text-muted-foreground">Ultima</p>
-              <p className="font-display text-sm font-bold text-foreground">
+              <p className="font-sans text-sm font-bold text-foreground">
                 {formatDate(evaluations[0]?.createdAt) ?? '-'}
               </p>
             </div>
@@ -112,11 +112,11 @@ export function AlunoAvaliacoes() {
               return (
                 <div key={ev.id} className="transition-colors">
                   <button
-                    className="w-full p-5 flex items-center gap-4 hover:bg-[rgba(255,255,255,0.02)] transition-colors text-left"
+                    className="w-full p-5 flex items-center gap-4 hover:bg-white/5 transition-colors text-left"
                     onClick={() => setExpandedEval(isExpanded ? null : ev.id)}
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-[rgba(16,185,129,0.12)] flex items-center justify-center shrink-0">
-                      <ClipboardCheck className="h-6 w-6 text-[#10B981]" />
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <ClipboardCheck className="h-6 w-6 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-foreground">{formatDate(ev.createdAt)}</p>
@@ -146,7 +146,7 @@ export function AlunoAvaliacoes() {
                           {/* Dados Pessoais + Anamnese */}
                           <div className="bg-muted/20 rounded-2xl p-5 border border-border/30 space-y-3">
                             <h3 className="font-semibold text-sm flex items-center gap-2 text-foreground">
-                              <User className="h-4 w-4 text-[#10B981]" /> Dados Pessoais + Anamnese
+                              <User className="h-4 w-4 text-primary" /> Dados Pessoais + Anamnese
                             </h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                               {ev.name && <div><span className="text-muted-foreground text-xs">Nome:</span><p className="text-foreground">{ev.name}</p></div>}
@@ -158,13 +158,13 @@ export function AlunoAvaliacoes() {
                             <div className="flex flex-wrap gap-2">
                               <Badge variant="outline" className={cn(
                                 'text-xs border-border/50',
-                                ev.previousTraining ? 'bg-[rgba(16,185,129,0.1)] text-[#10B981]' : 'bg-muted/50 text-muted-foreground'
+                                ev.previousTraining ? 'bg-primary/10 text-primary' : 'bg-muted/50 text-muted-foreground'
                               )}>
                                 {ev.previousTraining ? 'Ja treinou' : 'Nunca treinou'}
                               </Badge>
                               {ev.healthIssues && <Badge variant="outline" className="text-xs border-red-500/20 bg-red-500/10 text-red-400">Problemas de saude</Badge>}
                               {ev.medication && <Badge variant="outline" className="text-xs border-amber-500/20 bg-amber-500/10 text-amber-400">Toma medicamento</Badge>}
-                              {ev.mainGoal && <Badge variant="outline" className="text-xs border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.08)] text-[#10B981]">Meta: {ev.mainGoal}</Badge>}
+                              {ev.mainGoal && <Badge variant="outline" className="text-xs border-primary/20 bg-primary/10 text-primary">Meta: {ev.mainGoal}</Badge>}
                               {ev.sleepQuality && <Badge variant="outline" className="text-xs border-border/50">Sono: {ev.sleepQuality}</Badge>}
                               {ev.stressLevel && <Badge variant="outline" className="text-xs border-border/50">Estresse: {ev.stressLevel}</Badge>}
                             </div>
@@ -175,7 +175,7 @@ export function AlunoAvaliacoes() {
                           {/* Medidas + Fotos */}
                           <div className="bg-muted/20 rounded-2xl p-5 border border-border/30 space-y-3">
                             <h3 className="font-semibold text-sm flex items-center gap-2 text-foreground">
-                              <Ruler className="h-4 w-4 text-[#10B981]" /> Medidas + Fotos
+                              <Ruler className="h-4 w-4 text-primary" /> Medidas + Fotos
                             </h3>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                               {ev.weight && (
@@ -266,7 +266,7 @@ export function AlunoAvaliacoes() {
                           {/* Objetivos + Termo */}
                           <div className="bg-muted/20 rounded-2xl p-5 border border-border/30 space-y-3">
                             <h3 className="font-semibold text-sm flex items-center gap-2 text-foreground">
-                              <Target className="h-4 w-4 text-[#10B981]" /> Objetivos + Termo
+                              <Target className="h-4 w-4 text-primary" /> Objetivos + Termo
                             </h3>
                             {ev.specificGoal && (
                               <div className="bg-card rounded-xl p-3 border border-border/30">
@@ -291,7 +291,7 @@ export function AlunoAvaliacoes() {
                               <Badge variant="outline" className={cn(
                                 'text-xs',
                                 ev.agreedTerms
-                                  ? 'bg-[rgba(16,185,129,0.1)] text-[#10B981] border-[rgba(16,185,129,0.2)]'
+                                  ? 'bg-primary/10 text-primary border-primary/20'
                                   : 'bg-red-500/10 text-red-400 border-red-500/20'
                               )}>
                                 {ev.agreedTerms ? 'Termo aceito' : 'Termo nao aceito'}
