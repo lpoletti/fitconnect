@@ -6,6 +6,5 @@ node_modules
 .DS_Store
 *.log
 .deploy
-yarn.lock
 
 package-lock.json
