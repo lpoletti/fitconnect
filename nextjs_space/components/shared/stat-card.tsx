@@ -49,8 +49,8 @@ export function StatCard({ title, value, icon: Icon, description, variant = 'def
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'group relative bg-card rounded-2xl p-5 border border-border/50 overflow-hidden',
-        'hover:border-border/80 hover:shadow-lg hover:shadow-black/20 transition-all duration-normal',
+        'group relative bg-card rounded-2xl p-5 border border-border/50 overflow-hidden h-[120px]',
+        'hover:border-border/80 hover:shadow-[0_8px_20px_rgba(0,0,0,0.20)] transition-all duration-200',
         'hover:-translate-y-0.5'
       )}
     >

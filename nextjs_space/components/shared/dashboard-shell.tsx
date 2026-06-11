@@ -129,7 +129,7 @@ export function DashboardShell({ children, navItems }: { children: React.ReactNo
       </AnimatePresence>
 
       {/* Desktop sidebar - always visible */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 z-50 border-r border-border/50 bg-[#0F172A]">
+      <aside className="hidden lg:flex lg:flex-col lg:w-[280px] lg:fixed lg:inset-y-0 z-50 border-r border-border/50 bg-[#0F172A]">
         {sidebarContent}
       </aside>
 
@@ -149,7 +149,7 @@ export function DashboardShell({ children, navItems }: { children: React.ReactNo
       </AnimatePresence>
 
       {/* Main content area */}
-      <div className="lg:pl-64 flex-1 flex flex-col min-h-screen">
+      <div className="lg:pl-[280px] flex-1 flex flex-col min-h-screen">
         {/* Top bar */}
         <header className="sticky top-0 z-30 glass-strong h-16 flex items-center gap-4 px-4 lg:px-8">
           <button className="lg:hidden text-muted-foreground hover:text-foreground transition-colors" onClick={() => setSidebarOpen(true)}>

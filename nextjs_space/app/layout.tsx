@@ -1,4 +1,4 @@
-import { DM_Sans, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
@@ -7,8 +7,7 @@ import { Providers } from '@/components/providers'
 
 export const dynamic = "force-dynamic";
 
-const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-sans' })
-const jakartaSans = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-display' })
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' })
 
 export const metadata = {
@@ -35,7 +34,7 @@ export default function RootLayout({
       <head>
         <script src="https://apps.abacus.ai/chatllm/appllm-lib.js"></script>
       </head>
-      <body className={`${dmSans.variable} ${jakartaSans.variable} ${jetbrainsMono.variable} font-sans`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
         <Providers>
           <ThemeProvider
             attribute="class"

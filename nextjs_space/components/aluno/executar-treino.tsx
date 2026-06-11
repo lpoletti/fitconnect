@@ -148,7 +148,7 @@ const SetRow = memo(function SetRow({
     <div
       onClick={onToggle}
       className={cn(
-        'flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-normal cursor-pointer select-none',
+        'flex items-center gap-3 p-3 min-h-[52px] rounded-xl border transition-all duration-200 cursor-pointer select-none',
         completed
           ? `${isWarmup ? 'bg-orange-500/8' : 'bg-[rgba(16,185,129,0.06)]'} border-transparent`
           : 'bg-secondary/30 border-border/30 hover:border-border/60 hover:bg-[rgba(16,185,129,0.03)]'
@@ -422,7 +422,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
 
   return (
     <DashboardShell navItems={navItems}>
-      <div className="max-w-3xl mx-auto space-y-5">
+      <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Link href="/aluno/treinos">
@@ -524,18 +524,20 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   className={cn(
-                    'relative bg-card rounded-2xl border overflow-hidden transition-all duration-normal',
-                    allExDone ? 'border-emerald-500/20' : 'border-border/50 hover:border-border/80'
+                    'relative rounded-2xl border overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.20)]',
+                    allExDone
+                      ? 'bg-[rgba(34,197,94,0.10)] border-[#22C55E]'
+                      : isExpanded
+                        ? 'bg-card border-border/50'
+                        : 'bg-[#1F2937] border-[#374151] hover:border-border/80'
                   )}
-                  style={{
-                    background: isExpanded
-                      ? 'linear-gradient(90deg, rgba(16,185,129,0.08), transparent)'
-                      : undefined,
-                  }}
+                  style={isExpanded ? {
+                    background: 'linear-gradient(90deg, rgba(16,185,129,0.15), transparent)',
+                  } : undefined}
                 >
                   {/* Left accent border when expanded */}
                   {isExpanded && (
-                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#10B981] rounded-r-full" />
+                    <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#10B981] rounded-r-full" />
                   )}
 
                   {/* Exercise header */}
