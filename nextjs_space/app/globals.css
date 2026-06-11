@@ -4,6 +4,70 @@
 
 @layer base {
   :root {
+    --background: 220 40% 11%;
+    --foreground: 220 30% 98%;
+
+    --card: 220 28% 17%;
+    --card-foreground: 220 30% 98%;
+
+    --popover: 220 28% 17%;
+    --popover-foreground: 220 30% 98%;
+
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+
+    --primary-light: 160 84% 52%;
+
+    --secondary: 220 20% 22%;
+    --secondary-foreground: 220 30% 98%;
+
+    --muted: 220 20% 22%;
+    --muted-foreground: 220 10% 65%;
+
+    --accent: 25 90% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+
+    --border: 220 16% 27%;
+    --input: 220 16% 27%;
+    --ring: 160 84% 39%;
+
+    --radius: 1rem;
+    --radius-sm: calc(1rem - 4px);
+    --radius-lg: calc(1rem + 4px);
+    --radius-full: 9999px;
+
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --spacing-3xl: 64px;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2), 0 1px 3px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+    --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.15);
+
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 350ms;
+
+    --chart-1: 160 84% 39%;
+    --chart-2: 25 90% 55%;
+    --chart-3: 200 70% 55%;
+    --chart-4: 340 75% 55%;
+    --chart-5: 43 74% 66%;
+  }
+
+  .light {
     --background: 0 0% 98%;
     --foreground: 220 20% 10%;
 
@@ -15,6 +79,8 @@
 
     --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
+
+    --primary-light: 160 84% 52%;
 
     --secondary: 215 20% 95%;
     --secondary-foreground: 220 20% 10%;
@@ -28,72 +94,17 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 160 84% 39%;
 
-    --radius: 0.625rem;
-    --radius-sm: calc(0.625rem - 4px);
-    --radius-lg: calc(0.625rem + 4px);
-    --radius-full: 9999px;
-
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 16px;
-    --spacing-lg: 24px;
-    --spacing-xl: 32px;
-    --spacing-2xl: 48px;
-    --spacing-3xl: 64px;
-
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 3px 0 rgb(0 0 0 / 0.06);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-
-    --duration-fast: 150ms;
-    --duration-normal: 250ms;
-    --duration-slow: 350ms;
-
-    --chart-1: 160 84% 39%;
-    --chart-2: 25 95% 53%;
-    --chart-3: 215 70% 55%;
-    --chart-4: 340 75% 55%;
-    --chart-5: 43 74% 66%;
-  }
-
-  .dark {
-    --background: 220 15% 8%;
-    --foreground: 0 0% 95%;
-
-    --card: 220 15% 12%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 220 15% 12%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 160 72% 45%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 15% 18%;
-    --secondary-foreground: 0 0% 95%;
-
-    --muted: 220 15% 18%;
-    --muted-foreground: 220 5% 60%;
-
-    --accent: 25 90% 55%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 220 15% 20%;
-    --input: 220 15% 20%;
-    --ring: 160 72% 45%;
-
-    --chart-1: 160 72% 45%;
-    --chart-2: 25 90% 55%;
-    --chart-3: 215 70% 55%;
-    --chart-4: 340 75% 55%;
-    --chart-5: 43 74% 66%;
+    --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.1);
   }
 }
 
@@ -101,8 +112,109 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #f9fafb;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(31, 41, 55, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-strong {
+    background: rgba(31, 41, 55, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .card-gradient {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 1) 0%, rgba(17, 24, 39, 1) 100%);
+  }
+
+  .card-hover {
+    transition: all var(--duration-normal) ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #10B981, #34D399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient {
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+  }
+
+  .border-gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .progress-bar {
+    @apply rounded-full;
+    background: #374151;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    @apply rounded-full transition-all duration-500 ease-out;
+    background: #10B981;
+  }
+
+  .sidebar-item-active {
+    background: rgba(16, 185, 129, 0.15);
+    border-left: 3px solid #10B981;
+  }
+
+  .sidebar-item-hover {
+    background: rgba(255, 255, 255, 0.04);
   }
 }
 

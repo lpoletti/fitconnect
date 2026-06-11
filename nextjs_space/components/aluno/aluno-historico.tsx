@@ -6,19 +6,22 @@ import { StatCard } from '@/components/shared/stat-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   LayoutDashboard, ClipboardList, History, Trophy,
   Calendar as CalendarIcon, CheckCircle, ChevronDown, ChevronUp, Filter, FileCheck
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
   { label: 'Meus Treinos', href: '/aluno/treinos', icon: ClipboardList },
-  { label: 'Avaliações', href: '/aluno/avaliacoes', icon: FileCheck },
-  { label: 'Calendário', href: '/aluno/calendario', icon: CalendarIcon },
-  { label: 'Histórico', href: '/aluno/historico', icon: History },
+  { label: 'Avaliacoes', href: '/aluno/avaliacoes', icon: FileCheck },
+  { label: 'Calendario', href: '/aluno/calendario', icon: CalendarIcon },
+  { label: 'Historico', href: '/aluno/historico', icon: History },
 ];
 
 export function AlunoHistorico() {
@@ -37,7 +40,7 @@ export function AlunoHistorico() {
       const res = await fetch(`/api/aluno/history?${params.toString()}`);
       if (res.ok) setData(await res.json());
     } catch {
-      toast.error('Erro ao carregar histórico.');
+      toast.error('Erro ao carregar historico.');
     } finally {
       setLoading(false);
     }
@@ -54,30 +57,42 @@ export function AlunoHistorico() {
 
   return (
     <DashboardShell navItems={navItems}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Histórico de Treinos</h1>
-          <p className="text-muted-foreground text-sm mt-1">Acompanhe todos os treinos executados.</p>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="space-y-8"
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-10 h-10 rounded-xl bg-[rgba(16,185,129,0.15)] flex items-center justify-center">
+            <History className="h-5 w-5 text-[#10B981]" />
+          </div>
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Historico de Treinos</h1>
+            <p className="text-muted-foreground text-sm">Acompanhe todos os treinos executados.</p>
+          </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard title="Total Concluídos" value={stats?.totalCompleted ?? 0} icon={Trophy} variant="success" />
+          <StatCard title="Total Concluidos" value={stats?.totalCompleted ?? 0} icon={Trophy} variant="success" />
           <StatCard title="Esta Semana" value={stats?.thisWeek ?? 0} icon={CalendarIcon} />
         </div>
 
         {/* Filters */}
-        <div className="bg-card rounded-xl p-4 shadow-[var(--shadow-md)]">
+        <div className="bg-card rounded-2xl p-5 border border-border/50">
           <div className="flex flex-col sm:flex-row gap-3 items-end">
-            <div className="space-y-1 flex-1">
-              <Label className="text-xs">De</Label>
-              <Input type="date" value={fromDate} onChange={(e: any) => setFromDate(e.target.value)} className="h-9" />
+            <div className="space-y-1.5 flex-1">
+              <Label className="text-xs text-muted-foreground">De</Label>
+              <Input type="date" value={fromDate} onChange={(e: any) => setFromDate(e.target.value)}
+                className="h-10 bg-secondary/30 border-border/30 rounded-xl" />
             </div>
-            <div className="space-y-1 flex-1">
-              <Label className="text-xs">Até</Label>
-              <Input type="date" value={toDate} onChange={(e: any) => setToDate(e.target.value)} className="h-9" />
+            <div className="space-y-1.5 flex-1">
+              <Label className="text-xs text-muted-foreground">Ate</Label>
+              <Input type="date" value={toDate} onChange={(e: any) => setToDate(e.target.value)}
+                className="h-10 bg-secondary/30 border-border/30 rounded-xl" />
             </div>
-            <Button size="sm" onClick={handleFilter} className="gap-1">
+            <Button size="sm" onClick={handleFilter} className="gap-1.5 min-h-[40px] rounded-xl">
               <Filter className="h-4 w-4" /> Filtrar
             </Button>
           </div>
@@ -86,49 +101,87 @@ export function AlunoHistorico() {
         {/* Timeline */}
         <div className="space-y-3">
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground">Carregando...</div>
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-20 rounded-2xl" />
+              ))}
+            </div>
           ) : logs.length === 0 ? (
-            <div className="bg-card rounded-xl p-12 shadow-[var(--shadow-md)] text-center">
-              <History className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">Nenhum treino concluído encontrado.</p>
+            <div className="bg-card rounded-2xl p-12 border border-border/50 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                <History className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <p className="text-muted-foreground font-medium">Nenhum treino concluido encontrado.</p>
             </div>
           ) : (
-            logs.map((log: any) => (
-              <div key={log?.id} className="bg-card rounded-xl shadow-[var(--shadow-md)] overflow-hidden">
-                <button
-                  onClick={() => setExpandedLog(expandedLog === log?.id ? null : log?.id)}
-                  className="w-full p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+            logs.map((log: any, idx: number) => {
+              const isExpanded = expandedLog === log?.id;
+              return (
+                <motion.div
+                  key={log?.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.03 }}
+                  className="bg-card rounded-2xl border border-border/50 overflow-hidden"
                 >
-                  <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium">{log?.assignedWorkout?.workoutName ?? 'Treino'}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {log?.completedAt ? format(new Date(log.completedAt), "dd/MM/yyyy 'às' HH:mm") : '-'}
-                    </p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{(log?.exerciseLogs ?? []).length} exercícios</span>
-                  {expandedLog === log?.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
-                {expandedLog === log?.id && (
-                  <div className="border-t border-border p-4 space-y-2 bg-muted/20">
-                    {(log?.exerciseLogs ?? []).map((el: any, i: number) => (
-                      <div key={el?.id ?? i} className="flex items-center gap-3 text-sm">
-                        <span className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">{i + 1}</span>
-                        <span className="flex-1 font-medium">{el?.exerciseName ?? 'Exercício'}</span>
-                        <span className="text-muted-foreground">{el?.setsCompleted ?? 0}x{el?.repsCompleted ?? '-'}</span>
-                        {el?.weightUsed && <span className="text-muted-foreground">{el.weightUsed}</span>}
-                      </div>
-                    ))}
-                    {log?.notes && (
-                      <p className="text-xs text-muted-foreground italic mt-2">Obs: {log.notes}</p>
+                  <button
+                    onClick={() => setExpandedLog(isExpanded ? null : log?.id)}
+                    className="w-full p-4 flex items-center gap-4 hover:bg-[rgba(255,255,255,0.02)] transition-colors text-left"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <CheckCircle className="h-5 w-5 text-emerald-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground">{log?.assignedWorkout?.workoutName ?? 'Treino'}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {log?.completedAt ? format(new Date(log.completedAt), "dd/MM/yyyy 'as' HH:mm") : '-'}
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-full shrink-0">
+                      {(log?.exerciseLogs ?? []).length} exercicios
+                    </span>
+                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  </button>
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="border-t border-border/30 p-4 space-y-2 bg-muted/10">
+                          {(log?.exerciseLogs ?? []).map((el: any, i: number) => (
+                            <div key={el?.id ?? i} className="flex items-center gap-3 text-sm bg-card/50 rounded-xl p-3 border border-border/20">
+                              <span className="w-7 h-7 rounded-lg bg-[rgba(16,185,129,0.1)] flex items-center justify-center text-xs font-bold text-[#10B981] shrink-0">
+                                {i + 1}
+                              </span>
+                              <span className="flex-1 font-medium text-foreground">{el?.exerciseName ?? 'Exercicio'}</span>
+                              <span className="text-muted-foreground bg-muted/30 px-2 py-0.5 rounded text-xs">
+                                {el?.setsCompleted ?? 0}x{el?.repsCompleted ?? '-'}
+                              </span>
+                              {el?.weightUsed && (
+                                <span className="text-muted-foreground bg-muted/30 px-2 py-0.5 rounded text-xs">
+                                  {el.weightUsed}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                          {log?.notes && (
+                            <p className="text-xs text-muted-foreground italic mt-2 px-1">
+                              Obs: {log.notes}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
                     )}
-                  </div>
-                )}
-              </div>
-            ))
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })
           )}
         </div>
-      </div>
+      </motion.div>
     </DashboardShell>
   );
 }
