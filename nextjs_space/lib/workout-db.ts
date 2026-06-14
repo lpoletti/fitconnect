@@ -22,11 +22,19 @@ export interface ExerciseState {
   hasWarmup: boolean;
 }
 
+export interface RestTimerState {
+  exIndex: number;
+  active: boolean;
+  seconds: number;
+  total: number;
+}
+
 export interface WorkoutSession {
   workoutId: string;
   exerciseStates: ExerciseState[];
   notes: string;
   elapsedSeconds: number;
+  restTimer: RestTimerState;
   lastUpdated: number;
   status: 'active' | 'completed';
 }

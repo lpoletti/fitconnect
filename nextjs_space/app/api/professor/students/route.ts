@@ -16,10 +16,52 @@ export async function GET() {
       where: { professorId: session.user.professorId },
       include: {
         student: {
-          include: { user: { select: { name: true, email: true } } },
+          include: {
+            user: { select: { name: true, email: true } },
+            workoutLogs: {
+              orderBy: { completedAt: 'desc' },
+              take: 1,
+            },
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
+    });
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const studentIds = links.map(l => l.studentId);
+
+    const weeklyCounts = studentIds.length > 0
+      ? await prisma.workoutLog.groupBy({
+          by: ['studentId'],
+          where: {
+            studentId: { in: studentIds },
+            completedAt: { gte: sevenDaysAgo },
+          },
+          _count: true,
+        })
+      : [];
+
+    const countMap = new Map(weeklyCounts.map(c => [c.studentId, c._count]));
+
+    const students = links.map(link => {
+      const lastLog = link.student.workoutLogs[0] ?? null;
+      const weeklyCount = countMap.get(link.student.id) ?? 0;
+      const weeklyProgress = Math.min(Math.round((weeklyCount / 3) * 100), 100);
+
+      return {
+        id: link.id,
+        status: link.status,
+        student: {
+          id: link.student.id,
+          user: {
+            name: link.student.user.name,
+            email: link.student.user.email,
+          },
+          lastWorkout: lastLog?.completedAt?.toISOString() ?? null,
+          weeklyProgress,
+        },
+      };
     });
 
     const pendingInvites = await prisma.pendingInvite.findMany({
@@ -27,7 +69,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ students: links ?? [], pendingInvites: pendingInvites ?? [] });
+    return NextResponse.json({ students, pendingInvites: pendingInvites ?? [] });
   } catch (error: any) {
     console.error('Students error:', error);
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 });

@@ -37,6 +37,27 @@ export function AlunoTreinos() {
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [pendingWorkoutId, setPendingWorkoutId] = useState<string | null>(null);
+
+  // Verificar sessao ativa no localStorage
+  useEffect(() => {
+    function checkPending() {
+      try {
+        const raw = localStorage.getItem('fitconnect-workout-bkp');
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data.status === 'active' && data.workoutId) {
+            setPendingWorkoutId(data.workoutId);
+            return;
+          }
+        }
+      } catch {}
+      setPendingWorkoutId(null);
+    }
+    checkPending();
+    window.addEventListener('storage', checkPending);
+    return () => window.removeEventListener('storage', checkPending);
+  }, []);
 
   const refreshWorkouts = async () => {
     const dashRes = await fetch('/api/aluno/dashboard');
@@ -64,6 +85,8 @@ export function AlunoTreinos() {
       return (w?.workoutName ?? '').toLowerCase().includes(searchQuery.toLowerCase());
     })
     .sort((a: any, b: any) => {
+      if (a.id === pendingWorkoutId) return -1;
+      if (b.id === pendingWorkoutId) return 1;
       if (a.status === 'inactive' && b.status !== 'inactive') return 1;
       if (a.status !== 'inactive' && b.status === 'inactive') return -1;
       return 0;
@@ -272,16 +295,21 @@ export function AlunoTreinos() {
               const isInactive = w?.status === 'inactive';
               const isPersonal = w?.isPersonal;
               const hasLogs = (w?._count?.workoutLogs ?? 0) > 0;
+              const isPending = w?.id === pendingWorkoutId;
               return (
                 <motion.div
                   key={w?.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={cn(
-                    'bg-card rounded-2xl border border-border/50 overflow-hidden transition-all',
+                    'bg-card rounded-2xl border overflow-hidden transition-all relative',
+                    isPending ? 'border-amber-500/60 ring-1 ring-amber-500/20' : 'border-border/50',
                     isInactive ? 'opacity-50' : 'hover:border-border/80'
                   )}
                 >
+                  {isPending && (
+                    <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 to-orange-500" />
+                  )}
                   <div className="p-4 flex items-center gap-4">
                     <Link
                       href={isInactive ? '#' : `/aluno/treinos/${w?.id}`}
@@ -289,16 +317,24 @@ export function AlunoTreinos() {
                     >
                       <div className={cn(
                         'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-                        isInactive ? 'bg-muted/50' : 'bg-primary/10'
+                        isPending ? 'bg-amber-500/15' : isInactive ? 'bg-muted/50' : 'bg-primary/10'
                       )}>
                         {isInactive
                           ? <EyeOff className="h-6 w-6 text-muted-foreground" />
-                          : <Play className="h-6 w-6 text-primary" />
+                          : isPending
+                            ? <Play className="h-6 w-6 text-amber-400" />
+                            : <Play className="h-6 w-6 text-primary" />
                         }
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className={cn('font-medium text-foreground truncate', isInactive && 'line-through text-muted-foreground')}>
+                        <h3 className={cn('font-medium text-foreground truncate flex items-center gap-2', isInactive && 'line-through text-muted-foreground')}>
                           {w?.workoutName ?? 'Treino'}
+                          {isPending && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                              Em andamento
+                            </span>
+                          )}
                         </h3>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <p className="text-xs text-muted-foreground flex items-center gap-1">

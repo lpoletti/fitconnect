@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, memo } from 'react';
+import { useEffect, useState, useCallback, memo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/shared/dashboard-shell';
 import { MediaGallery } from '@/components/shared/media-lightbox';
@@ -15,7 +15,7 @@ import {
   LayoutDashboard, ClipboardList, History, ArrowLeft, Pencil,
   Dumbbell, Clock, Weight, CheckCircle, Trophy, Flame, CheckCheck,
   Calendar as CalendarIcon, XCircle, FileCheck, ChevronDown, ChevronUp,
-  RotateCcw, Timer, Play, Zap, SkipForward, Square, RefreshCw
+  RotateCcw, Timer, Play, Zap, SkipForward, Square, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkoutSession } from '@/hooks/use-workout-session';
@@ -211,21 +211,42 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expandedEx, setExpandedEx] = useState<number>(0);
-  const [restTimer, setRestTimer] = useState<{ exIndex: number; active: boolean; seconds: number; total: number }>({ exIndex: -1, active: false, seconds: 0, total: 0 });
   const [justCompleted, setJustCompleted] = useState<{ ex: number; set: number } | null>(null);
+  const [showExitWarning, setShowExitWarning] = useState(false);
 
   const {
     exerciseStates, setExerciseStates,
     notes, setNotes,
-    elapsedSeconds, isRestoring, recovery, hasRestored,
+    elapsedSeconds, isRestoring, recovery, hasRestored, isSessionActive,
+    restTimer, setRestTimer, saveImmediately, syncSaveForUnload,
     discardRecovery, restoreRecovery, cancelWorkout, clearSession,
   } = useWorkoutSession(workoutId);
+
+  const isActive = isSessionActive && !isRestoring && !recovery && !loading;
+
+  // Save when tab loses visibility (mobile browser switch, etc)
+  useEffect(() => {
+    if (!isActive) return;
+    const handler = () => {
+      if (document.visibilityState === 'hidden') saveImmediately();
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, [isActive, saveImmediately]);
+
+  // pagehide - mais confiavel que beforeunload em mobile Safari
+  useEffect(() => {
+    if (!isActive) return;
+    const handler = () => syncSaveForUnload();
+    window.addEventListener('pagehide', handler);
+    return () => window.removeEventListener('pagehide', handler);
+  }, [isActive, syncSaveForUnload]);
 
   // Rest countdown
   useEffect(() => {
     if (!restTimer.active || restTimer.seconds <= 0) return;
     const interval = setInterval(() => {
-      setRestTimer(prev => {
+      setRestTimer((prev: { exIndex: number; active: boolean; seconds: number; total: number }) => {
         if (prev.seconds <= 1) return { ...prev, active: false, seconds: 0, exIndex: -1 };
         return { ...prev, seconds: prev.seconds - 1 };
       });
@@ -245,6 +266,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
             const matched = lastLogExercises.find((l: any) => l.exerciseName === ex.exerciseName);
             return buildExerciseState(ex, matched);
           }));
+          setTimeout(() => saveImmediately(), 100);
         }
       })
       .catch(() => toast.error('Erro ao carregar treino.'))
@@ -252,7 +274,9 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
   }, [workoutId, isRestoring, recovery]);
 
   const toggleSetCompleted = (exIdx: number, setIdx: number) => {
-    const wasCompleted = exerciseStates[exIdx]?.setsLog[setIdx]?.completed;
+    const es = exerciseStates[exIdx]?.setsLog[setIdx];
+    if (!es) return;
+    const wasCompleted = es.completed;
     const nowCompleted = !wasCompleted;
     setExerciseStates(prev => prev.map((ex, ei) =>
       ei !== exIdx ? ex : {
@@ -265,14 +289,17 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
     if (nowCompleted) {
       setJustCompleted({ ex: exIdx, set: setIdx });
       setTimeout(() => setJustCompleted(null), 800);
-      const restStr = exerciseStates[exIdx]?.setsLog[setIdx]?.restTime ?? '60s';
+      const restStr = es.restTime ?? '60s';
       const restSec = parseInt(restStr) || 60;
       setRestTimer({ exIndex: exIdx, active: true, seconds: restSec, total: restSec });
+      setTimeout(() => saveImmediately(), 50);
     }
   };
 
   const toggleWarmupCompleted = (exIdx: number, setIdx: number) => {
-    const wasCompleted = exerciseStates[exIdx]?.warmupLog[setIdx]?.completed;
+    const ws = exerciseStates[exIdx]?.warmupLog[setIdx];
+    if (!ws) return;
+    const wasCompleted = ws.completed;
     const nowCompleted = !wasCompleted;
     setExerciseStates(prev => prev.map((ex, ei) =>
       ei !== exIdx ? ex : {
@@ -283,9 +310,10 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
       }
     ));
     if (nowCompleted) {
-      const restStr = exerciseStates[exIdx]?.warmupLog[setIdx]?.restTime ?? '30s';
+      const restStr = ws.restTime ?? '30s';
       const restSec = parseInt(restStr) || 30;
       setRestTimer({ exIndex: exIdx, active: true, seconds: restSec, total: restSec });
+      setTimeout(() => saveImmediately(), 50);
     }
   };
 
@@ -299,6 +327,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
       };
       return updated;
     });
+    setTimeout(() => saveImmediately(), 50);
   };
 
   const getExPercent = (es: ExerciseState) => {
@@ -327,8 +356,8 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
 
   const handleComplete = async () => {
     if (!allCompleted) {
-      toast.error('Marque todas as series como concluidas.');
-      return;
+      const ok = window.confirm('Nem todas as series foram concluidas. Deseja salvar o progresso atual e encerrar?');
+      if (!ok) return;
     }
     setSaving(true);
     try {
@@ -396,17 +425,19 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Link href="/aluno/treinos">
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => { saveImmediately(); router.push('/aluno/treinos'); }}
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground inline-flex items-center justify-center"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
           <div className="flex-1 min-w-0">
             <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
-              {workout?.workoutName ?? 'Carregando...'}
+              {workout?.workoutName ?? (hasRestored ? 'Treino Restaurado' : 'Carregando...')}
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {workout?.professor?.user?.name ? `Prof. ${workout.professor.user.name}` : workout?.isPersonal ? 'Treino pessoal' : ''}
+              {workout?.professor?.user?.name ? `Prof. ${workout.professor.user.name}` : workout?.isPersonal ? 'Treino pessoal' : (!workout && exerciseStates.length > 0 ? 'Dados do treino anterior' : '')}
             </p>
           </div>
           {workout?.isPersonal && (
@@ -466,7 +497,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
               Voce estava fazendo um treino que nao foi concluido. Deseja continuar de onde parou ou comecar um novo?
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={restoreRecovery} className="gap-2 min-h-[48px] rounded-xl text-base">
+              <Button onClick={() => { router.push(`/aluno/treinos/${recovery.workoutId}`); }} className="gap-2 min-h-[48px] rounded-xl text-base">
                 <RotateCcw className="h-4 w-4" /> Continuar treino anterior
               </Button>
               <Button variant="outline" onClick={discardRecovery} className="gap-2 min-h-[48px] rounded-xl text-base border-border/50">
@@ -489,7 +520,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
               </div>
             ))}
           </div>
-        ) : recovery ? null : !workout ? (
+        ) : recovery ? null : !workout && exerciseStates.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
               <Dumbbell className="h-8 w-8 text-muted-foreground/50" />
@@ -682,7 +713,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={handleComplete}
-                  disabled={!allCompleted || saving}
+                  disabled={saving}
                   className="flex-1 gap-2 min-h-[52px] rounded-xl text-base font-semibold bg-primary hover:bg-primary-light text-white disabled:opacity-40"
                 >
                   {saving ? (
@@ -702,7 +733,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
 
               {!allCompleted && (
                 <p className="text-xs text-center text-muted-foreground">
-                  Marque todas as series como concluidas para finalizar o treino.
+                  Voce pode encerrar mesmo sem concluir todas as series. O progresso sera salvo.
                 </p>
               )}
             </div>

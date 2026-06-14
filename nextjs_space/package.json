@@ -2,7 +2,7 @@
   "name": "app",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@next/swc-wasm-nodejs": "13.5.1",
+    "@playwright/test": "^1.60.0",
     "@types/bcryptjs": "2.4.6",
     "@types/jsonwebtoken": "9.0.5",
     "@types/node": "20.6.2",
@@ -87,7 +88,7 @@
     "formik": "2.4.5",
     "framer-motion": "10.18.0",
     "gray-matter": "4.0.3",
-    "idb": "^8.0.3",
+    "idb": "7",
     "input-otp": "1.2.4",
     "jotai": "2.6.0",
     "jsonwebtoken": "9.0.2",

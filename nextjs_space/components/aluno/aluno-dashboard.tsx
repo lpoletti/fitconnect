@@ -48,6 +48,23 @@ export function AlunoDashboard() {
   const [loading, setLoading] = useState(true);
   const [inviteCode, setInviteCode] = useState('');
   const [linking, setLinking] = useState(false);
+  const [pendingWorkoutId, setPendingWorkoutId] = useState<string | null>(null);
+
+  useEffect(() => {
+    function checkPending() {
+      try {
+        const raw = localStorage.getItem('fitconnect-workout-bkp');
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (d.status === 'active' && d.workoutId) { setPendingWorkoutId(d.workoutId); return; }
+        }
+      } catch {}
+      setPendingWorkoutId(null);
+    }
+    checkPending();
+    window.addEventListener('storage', checkPending);
+    return () => window.removeEventListener('storage', checkPending);
+  }, []);
 
   const fetchData = () => {
     fetch('/api/aluno/dashboard')
@@ -87,7 +104,13 @@ export function AlunoDashboard() {
     }
   };
 
-  const workouts = (data?.workouts ?? []).filter((w: any) => w?.status === 'active');
+  const workouts = (data?.workouts ?? [])
+    .filter((w: any) => w?.status === 'active')
+    .sort((a: any, b: any) => {
+      if (a.id === pendingWorkoutId) return -1;
+      if (b.id === pendingWorkoutId) return 1;
+      return 0;
+    });
   const recentLogs = data?.recentLogs ?? [];
   const totalCompleted = data?.totalCompleted ?? 0;
 
@@ -244,20 +267,47 @@ export function AlunoDashboard() {
                     </div>
                   ) : (
                     <div className="space-y-1 p-4">
-                      {workouts.map((w: any) => (
-                        <Link key={w?.id} href={`/aluno/treinos/${w?.id}`}>
-                          <WorkoutCard
-                            name={w?.workoutName ?? 'Treino'}
-                            exercises={w?.exercises?.length ?? 0}
-                            duration={w?.estimatedDuration ?? 45}
-                            difficulty={
-                              w?.difficulty === 'beginner' ? 'beginner'
-                              : w?.difficulty === 'advanced' ? 'advanced'
-                              : 'intermediate'
-                            }
-                          />
-                        </Link>
-                      ))}
+                      {workouts.map((w: any) => {
+                        const isPending = w?.id === pendingWorkoutId;
+                        return isPending ? (
+                          <Link key={w?.id} href={`/aluno/treinos/${w?.id}`} className="block -mx-1">
+                            <div className="relative rounded-xl border border-amber-500/60 ring-1 ring-amber-500/20 bg-amber-500/5 overflow-hidden transition-all hover:bg-amber-500/10">
+                              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500 to-orange-500" />
+                              <div className="p-3 flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                                  <Dumbbell className="h-5 w-5 text-amber-400" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate flex items-center gap-2">
+                                    {w?.workoutName ?? 'Treino'}
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full shrink-0">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                      Em andamento
+                                    </span>
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {(w?.exercises ?? []).length} exercicios
+                                  </p>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                              </div>
+                            </div>
+                          </Link>
+                        ) : (
+                          <Link key={w?.id} href={`/aluno/treinos/${w?.id}`}>
+                            <WorkoutCard
+                              name={w?.workoutName ?? 'Treino'}
+                              exercises={w?.exercises?.length ?? 0}
+                              duration={w?.estimatedDuration ?? 45}
+                              difficulty={
+                                w?.difficulty === 'beginner' ? 'beginner'
+                                : w?.difficulty === 'advanced' ? 'advanced'
+                                : 'intermediate'
+                              }
+                            />
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
