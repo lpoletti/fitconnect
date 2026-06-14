@@ -15,9 +15,10 @@ import {
   LayoutDashboard, ClipboardList, History, ArrowLeft, Pencil,
   Dumbbell, Clock, Weight, CheckCircle, Trophy, Flame, CheckCheck,
   Calendar as CalendarIcon, XCircle, FileCheck, ChevronDown, ChevronUp,
-  RotateCcw, Timer, Play, Zap, SkipForward, Square
+  RotateCcw, Timer, Play, Zap, SkipForward, Square, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useWorkoutSession } from '@/hooks/use-workout-session';
 
 function CircularRestMini({ seconds, total, onSkip }: { seconds: number; total: number; onSkip: () => void }) {
   const size = 38;
@@ -55,27 +56,7 @@ const navItems = [
   { label: 'Historico', href: '/aluno/historico', icon: History },
 ];
 
-interface SetLog {
-  reps: string;
-  weight: string;
-  restTime: string;
-  completed: boolean;
-}
-
-interface WarmupSetLog {
-  reps: string;
-  weight: string;
-  weightUnit: string;
-  restTime: string;
-  completed: boolean;
-}
-
-interface ExerciseState {
-  exerciseName: string;
-  setsLog: SetLog[];
-  warmupLog: WarmupSetLog[];
-  hasWarmup: boolean;
-}
+import type { SetLog, WarmupSetLog, ExerciseState } from '@/lib/workout-db';
 
 function buildExerciseState(ex: any, lastExLog?: any): ExerciseState {
   const lastSetsLog = lastExLog?.setsLog && Array.isArray(lastExLog.setsLog) ? lastExLog.setsLog : null;
@@ -229,25 +210,16 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
   const [workout, setWorkout] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>([]);
-  const [notes, setNotes] = useState('');
-  const [startTime] = useState<number>(Date.now());
-  const [elapsed, setElapsed] = useState('00:00:00');
   const [expandedEx, setExpandedEx] = useState<number>(0);
   const [restTimer, setRestTimer] = useState<{ exIndex: number; active: boolean; seconds: number; total: number }>({ exIndex: -1, active: false, seconds: 0, total: 0 });
   const [justCompleted, setJustCompleted] = useState<{ ex: number; set: number } | null>(null);
 
-  // Timer
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const diff = Math.floor((Date.now() - startTime) / 1000);
-      const hrs = Math.floor(diff / 3600).toString().padStart(2, '0');
-      const mins = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-      const secs = (diff % 60).toString().padStart(2, '0');
-      setElapsed(`${hrs}:${mins}:${secs}`);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [startTime]);
+  const {
+    exerciseStates, setExerciseStates,
+    notes, setNotes,
+    elapsedSeconds, isRestoring, recovery, hasRestored,
+    discardRecovery, restoreRecovery, cancelWorkout, clearSession,
+  } = useWorkoutSession(workoutId);
 
   // Rest countdown
   useEffect(() => {
@@ -262,12 +234,12 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
   }, [restTimer.active, restTimer.seconds]);
 
   useEffect(() => {
-    if (!workoutId) return;
+    if (isRestoring || recovery || !workoutId) return;
     fetch(`/api/aluno/workouts/${workoutId}`)
       .then((r: any) => r.ok ? r.json() : null)
       .then((d: any) => {
         setWorkout(d);
-        if (d?.exercises) {
+        if (d?.exercises && !hasRestored) {
           const lastLogExercises = d?.lastLog?.exerciseLogs ?? [];
           setExerciseStates((d.exercises ?? []).map((ex: any) => {
             const matched = lastLogExercises.find((l: any) => l.exerciseName === ex.exerciseName);
@@ -277,7 +249,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
       })
       .catch(() => toast.error('Erro ao carregar treino.'))
       .finally(() => setLoading(false));
-  }, [workoutId]);
+  }, [workoutId, isRestoring, recovery]);
 
   const toggleSetCompleted = (exIdx: number, setIdx: number) => {
     const wasCompleted = exerciseStates[exIdx]?.setsLog[setIdx]?.completed;
@@ -349,9 +321,8 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
   const globalPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const handleCancel = () => {
-    if (confirm('Tem certeza que deseja cancelar o treino? O progresso sera perdido.')) {
-      router.push('/aluno/treinos');
-    }
+    cancelWorkout();
+    router.push('/aluno/treinos');
   };
 
   const handleComplete = async () => {
@@ -379,6 +350,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
         }),
       });
       if (res.ok) {
+        await clearSession();
         toast.success('Treino concluido! Parabens!');
         router.push('/aluno/historico');
       } else {
@@ -454,7 +426,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
           <div className="glass-strong rounded-2xl p-4 flex items-center gap-4">
             <div className="flex items-center gap-2.5">
               <Timer className="h-4 w-4 text-primary" />
-              <span className="font-mono text-lg font-bold tracking-wider text-white">{elapsed}</span>
+              <span className="font-mono text-lg font-bold tracking-wider text-white">{`${Math.floor(elapsedSeconds / 3600).toString().padStart(2, '0')}:${Math.floor((elapsedSeconds % 3600) / 60).toString().padStart(2, '0')}:${(elapsedSeconds % 60).toString().padStart(2, '0')}`}</span>
             </div>
             <div className="flex-1">
               <div className="progress-bar h-2.5">
@@ -473,15 +445,38 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
           </div>
         )}
 
-        {/* Last log info */}
-        {workout?.lastLog && (
+        {/* Session restored or last log info */}
+        {recovery ? null : ((hasRestored || workout?.lastLog) && (
           <div className="flex items-center gap-2 px-1">
             <RotateCcw className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs text-muted-foreground">Dados do ultimo treino pre-carregados</span>
+            <span className="text-xs text-muted-foreground">
+              {hasRestored ? 'Treino restaurado - continuando de onde parou' : 'Dados do ultimo treino pre-carregados'}
+            </span>
+          </div>
+        ))}
+
+        {/* Recovery screen */}
+        {recovery && (
+          <div className="text-center py-16 px-4">
+            <div className="w-20 h-20 rounded-3xl bg-amber-500/15 flex items-center justify-center mx-auto mb-6">
+              <RefreshCw className="h-10 w-10 text-amber-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Treino anterior encontrado</h2>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Voce estava fazendo um treino que nao foi concluido. Deseja continuar de onde parou ou comecar um novo?
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={restoreRecovery} className="gap-2 min-h-[48px] rounded-xl text-base">
+                <RotateCcw className="h-4 w-4" /> Continuar treino anterior
+              </Button>
+              <Button variant="outline" onClick={discardRecovery} className="gap-2 min-h-[48px] rounded-xl text-base border-border/50">
+                <XCircle className="h-4 w-4" /> Descartar e comecar novo
+              </Button>
+            </div>
           </div>
         )}
 
-        {loading ? (
+        {!recovery && loading ? (
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="bg-card rounded-2xl p-6 animate-pulse">
@@ -494,7 +489,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
               </div>
             ))}
           </div>
-        ) : !workout ? (
+        ) : recovery ? null : !workout ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
               <Dumbbell className="h-8 w-8 text-muted-foreground/50" />
