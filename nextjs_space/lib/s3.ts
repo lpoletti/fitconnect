@@ -1,46 +1,42 @@
-import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { createS3Client, getBucketConfig } from "./aws-config";
+import { createClient } from '@supabase/supabase-js';
 
-const s3 = createS3Client();
-const { bucketName, folderPrefix } = getBucketConfig();
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+);
+
+const BUCKET = 'exercise-media';
 
 export async function generatePresignedUploadUrl(
   fileName: string,
   contentType: string,
   isPublic = false
 ) {
-  const prefix = isPublic ? `${folderPrefix}public/uploads` : `${folderPrefix}uploads`;
+  const prefix = isPublic ? 'public/uploads' : 'uploads';
   const cloud_storage_path = `${prefix}/${Date.now()}-${fileName}`;
 
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: cloud_storage_path,
-    ContentType: contentType,
-    ...(isPublic ? { ContentDisposition: "attachment" } : {}),
-  });
+  const { data, error } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .createSignedUploadUrl(cloud_storage_path);
 
-  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
-  return { uploadUrl, cloud_storage_path };
+  if (error) throw error;
+
+  return { uploadUrl: data.signedUrl, cloud_storage_path };
 }
 
-export async function getFileUrl(cloud_storage_path: string, isPublic: boolean) {
-  if (isPublic) {
-    const region = process.env.AWS_REGION || 'us-east-1';
-    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
-  }
-  const command = new GetObjectCommand({
-    Bucket: bucketName,
-    Key: cloud_storage_path,
-    ResponseContentDisposition: "attachment",
-  });
-  return await getSignedUrl(s3, command, { expiresIn: 3600 });
+export async function getFileUrl(cloud_storage_path: string, _isPublic: boolean) {
+  const { data } = supabaseAdmin.storage
+    .from(BUCKET)
+    .getPublicUrl(cloud_storage_path);
+
+  return data.publicUrl;
 }
 
 export async function deleteFile(cloud_storage_path: string) {
-  const command = new DeleteObjectCommand({
-    Bucket: bucketName,
-    Key: cloud_storage_path,
-  });
-  await s3.send(command);
+  const { error } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .remove([cloud_storage_path]);
+
+  if (error) throw error;
 }
