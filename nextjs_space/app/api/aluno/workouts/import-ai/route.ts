@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       generalNotes: parsed.generalNotes ?? '',
     });
   } catch (error: any) {
-    console.error('Import AI error:', error);
-    return NextResponse.json({ error: 'Erro interno ao processar.' }, { status: 500 });
+    console.error('Import AI error:', error?.message, error?.stack);
+    return NextResponse.json({ error: `Erro interno ao processar: ${error?.message ?? 'unknown'}` }, { status: 500 });
   }
 }
