@@ -100,14 +100,39 @@ function parseExercise(e: any): Exercise {
   };
 }
 
-function parseMediaFiles(e: any): MediaFile[] {
-  // New format: mediaFiles array
-  if (e?.mediaFiles && Array.isArray(e.mediaFiles) && e.mediaFiles.length > 0) {
-    return e.mediaFiles.map((m: any) => ({ url: m.url ?? '', type: m.type ?? 'image', path: m.path ?? '' }));
+function toSupabasePublicUrl(urlOrPath: string): string {
+  if (!urlOrPath) return '';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+    if (urlOrPath.includes('supabase.co/storage')) return urlOrPath;
+    const pathMatch = urlOrPath.match(/\/(public\/uploads\/.+|uploads\/.+)/);
+    if (pathMatch) {
+      return supabaseUrl ? `${supabaseUrl}/storage/v1/object/public/exercise-media/${pathMatch[1]}` : urlOrPath;
+    }
+    return urlOrPath;
   }
-  // Legacy: single media fields
+  if (supabaseUrl) {
+    const cleanPath = urlOrPath.replace(/^\d+\//, '');
+    return `${supabaseUrl}/storage/v1/object/public/exercise-media/${cleanPath}`;
+  }
+  return urlOrPath;
+}
+
+function parseMediaFiles(e: any): MediaFile[] {
+  const bucket = 'exercise-media';
+  if (e?.mediaFiles && Array.isArray(e.mediaFiles) && e.mediaFiles.length > 0) {
+    return e.mediaFiles.map((m: any) => ({
+      url: toSupabasePublicUrl(m.url ?? m.path ?? ''),
+      type: m.type ?? 'image',
+      path: m.path ?? '',
+    }));
+  }
   if (e?.mediaUrl) {
-    return [{ url: e.mediaUrl, type: e.mediaType ?? 'image', path: e.mediaPath ?? '' }];
+    return [{
+      url: toSupabasePublicUrl(e.mediaUrl),
+      type: e.mediaType ?? 'image',
+      path: e.mediaPath ?? '',
+    }];
   }
   return [];
 }
@@ -193,9 +218,7 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
       toast.error(file.type.startsWith('video/') ? 'Vídeo: máx 100MB' : 'Imagem: máx 10MB');
       return;
     }
-    const updated = [...exercises];
-    updated[exIdx] = { ...updated[exIdx], uploading: true };
-    setExercises(updated);
+    setExercises(prev => prev.map((e, idx) => idx === exIdx ? { ...e, uploading: true } : e));
 
     try {
       const res = await fetch('/api/upload/presigned', {
@@ -219,11 +242,11 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
       const uploadRes = await fetch(uploadUrl, { method: 'PUT', headers, body: file });
       if (!uploadRes.ok) throw new Error('Erro no upload');
 
-      const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
-      const region = process.env.NEXT_PUBLIC_AWS_REGION;
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const bucketName = 'exercise-media';
       let publicUrl = '';
-      if (bucketName && region) {
-        publicUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+      if (supabaseUrl) {
+        publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cloud_storage_path}`;
       }
 
       const newMedia: MediaFile = {
@@ -232,19 +255,15 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
         path: cloud_storage_path,
       };
 
-      const updated2 = [...exercises];
-      updated2[exIdx] = {
-        ...updated2[exIdx],
-        mediaFiles: [...updated2[exIdx].mediaFiles, newMedia],
+      setExercises(prev => prev.map((e, idx) => idx === exIdx ? {
+        ...e,
+        mediaFiles: [...e.mediaFiles, newMedia],
         uploading: false,
-      };
-      setExercises(updated2);
+      } : e));
       toast.success('Mídia enviada com sucesso!');
     } catch (err: any) {
       toast.error(err?.message ?? 'Erro no upload');
-      const updated2 = [...exercises];
-      updated2[exIdx] = { ...updated2[exIdx], uploading: false };
-      setExercises(updated2);
+      setExercises(prev => prev.map((e, idx) => idx === exIdx ? { ...e, uploading: false } : e));
     }
   };
 
@@ -323,14 +342,33 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {ex.mediaFiles.map((media, mi) => (
-                    <div key={mi} className="relative inline-block">
+                    <div key={mi} className="relative inline-block group">
                       {media.type === 'image' ? (
-                        <img src={media.url} alt={`Mídia ${mi + 1}`} className="h-20 w-20 rounded-lg object-cover" />
+                        <img
+                          src={media.url}
+                          alt={`Mídia ${mi + 1}`}
+                          className="h-20 w-20 rounded-lg object-cover bg-muted"
+                          onError={(e: any) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
+                          }}
+                        />
                       ) : (
-                        <video src={media.url} className="h-20 w-20 rounded-lg object-cover" />
+                        <video
+                          src={media.url}
+                          preload="metadata"
+                          className="h-20 w-20 rounded-lg object-cover bg-muted"
+                          onError={(e: any) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
+                          }}
+                        />
                       )}
+                      <div className="hidden h-20 w-20 rounded-lg bg-muted items-center justify-center absolute inset-0">
+                        <span className="text-[9px] text-muted-foreground text-center px-1">Erro ao carregar</span>
+                      </div>
                       <button type="button" onClick={() => removeMedia(i, mi)}
-                        className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5">
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <X className="h-3 w-3" />
                       </button>
                     </div>

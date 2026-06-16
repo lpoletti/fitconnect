@@ -104,10 +104,20 @@ export function MediaGallery({ files, thumbnailClass = 'h-14 w-14' }: MediaGalle
             className="relative cursor-pointer group rounded-lg overflow-hidden"
           >
             {m.type === 'image' ? (
-              <img src={m.url} alt={`M\u00eddia ${i + 1}`} className={`${thumbnailClass} rounded-lg object-cover group-hover:opacity-80 transition-opacity`} />
+              <img
+                src={m.url}
+                alt={`M\u00eddia ${i + 1}`}
+                className={`${thumbnailClass} rounded-lg object-cover group-hover:opacity-80 transition-opacity bg-muted`}
+                onError={(e: any) => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" fill="%236b7280"><rect width="56" height="56" rx="8" fill="%23374151"/><text x="50%" y="54%" text-anchor="middle" fill="%239ca3af" font-size="10">Erro</text></svg>'; }}
+              />
             ) : (
               <div className="relative">
-                <video src={m.url} className={`${thumbnailClass} rounded-lg object-cover`} />
+                <video
+                  src={m.url}
+                  preload="metadata"
+                  className={`${thumbnailClass} rounded-lg object-cover bg-muted`}
+                  onError={(e: any) => { e.target.poster = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" fill="%236b7280"><rect width="56" height="56" rx="8" fill="%23374151"/><text x="50%" y="54%" text-anchor="middle" fill="%239ca3af" font-size="10">Erro</text></svg>'; }}
+                />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors rounded-lg">
                   <div className="w-6 h-6 rounded-full bg-white/80 flex items-center justify-center">
                     <div className="w-0 h-0 border-l-[8px] border-l-black border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent ml-0.5" />
