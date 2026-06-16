@@ -98,9 +98,16 @@ export function LoginForm() {
               </button>
             </div>
           </div>
-          <Button type="submit" className="w-full min-h-[44px]" disabled={loading}>
-            {loading ? 'Entrando...' : 'Entrar'}
-          </Button>
+          <div className="flex items-center justify-between">
+            <Button type="submit" className="flex-1 min-h-[44px]" disabled={loading}>
+              {loading ? 'Entrando...' : 'Entrar'}
+            </Button>
+          </div>
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+              Esqueci minha senha
+            </Link>
+          </div>
 
           <div className="relative my-2">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>

@@ -13,3 +13,5 @@ test-results/
 playwright.config.ts
 .playwright-mcp/
 supabase-*
+
+.vercel
