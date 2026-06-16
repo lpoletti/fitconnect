@@ -72,19 +72,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Texto muito curto. Cole o treino completo.' }, { status: 400 });
     }
 
-    const apiKey = process.env.ABACUSAI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: 'Serviço de IA não configurado.' }, { status: 500 });
     }
 
-    const response = await fetch('https://apps.abacus.ai/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-5.4-mini',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: `Extraia os treinos do seguinte texto:\n\n${text.trim()}` },
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('LLM API error:', errText);
+      console.error('Groq API error:', errText);
       return NextResponse.json({ error: 'Erro ao processar com IA. Tente novamente.' }, { status: 502 });
     }
 
