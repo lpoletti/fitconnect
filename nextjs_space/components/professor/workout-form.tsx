@@ -281,6 +281,9 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
     await onSubmit({ name, category, description, exercises });
   };
 
+  const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set());
+  const markMediaFailed = (exIdx: number, mi: number) => setFailedMedia(prev => new Set(prev).add(`${exIdx}-${mi}`));
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Workout info */}
@@ -338,42 +341,35 @@ export function WorkoutForm({ initialData, onSubmit, submitLabel = 'Salvar', loa
               {/* Media upload - multiple files (max 3) */}
               <div className="space-y-1.5 sm:col-span-2">
                 <Label className="text-xs flex items-center gap-1">
-                  <Upload className="h-3 w-3" /> Mídias de Execução ({ex.mediaFiles.length}/3)
+                  <Upload className="h-3 w-3" /> Mídias de Execução ({ex.mediaFiles.filter((_, mi) => !failedMedia.has(`${i}-${mi}`)).length}/3)
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {ex.mediaFiles.map((media, mi) => (
+                    failedMedia.has(`${i}-${mi}`) ? null : (
                     <div key={mi} className="relative inline-block group">
                       {media.type === 'image' ? (
                         <img
                           src={media.url}
                           alt={`Mídia ${mi + 1}`}
                           className="h-20 w-20 rounded-lg object-cover bg-muted"
-                          onError={(e: any) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
-                          }}
+                          onError={() => markMediaFailed(i, mi)}
                         />
                       ) : (
                         <video
                           src={media.url}
                           preload="metadata"
                           className="h-20 w-20 rounded-lg object-cover bg-muted"
-                          onError={(e: any) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
-                          }}
+                          onError={() => markMediaFailed(i, mi)}
                         />
                       )}
-                      <div className="hidden h-20 w-20 rounded-lg bg-muted items-center justify-center absolute inset-0">
-                        <span className="text-[9px] text-muted-foreground text-center px-1">Erro ao carregar</span>
-                      </div>
                       <button type="button" onClick={() => removeMedia(i, mi)}
                         className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
+                    )
                   ))}
-                  {ex.mediaFiles.length < 3 && (
+                  {ex.mediaFiles.filter((_, mi) => !failedMedia.has(`${i}-${mi}`)).length < 3 && (
                     <label className={`flex flex-col items-center justify-center h-20 w-20 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/50 transition-colors ${
                       ex.uploading ? 'opacity-50 pointer-events-none' : ''
                     }`}>

@@ -20,6 +20,24 @@ const navItems = [
   { label: 'Meu Plano', href: '/professor/plano', icon: CreditCard },
 ];
 
+function normalizeMediaUrl(url: string): string {
+  if (!url) return '';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.includes('supabase.co/storage')) return url;
+    const pathMatch = url.match(/\/(public\/uploads\/.+|uploads\/.+)/);
+    if (pathMatch && supabaseUrl) {
+      return `${supabaseUrl}/storage/v1/object/public/exercise-media/${pathMatch[1]}`;
+    }
+    return url;
+  }
+  if (supabaseUrl) {
+    const cleanPath = url.replace(/^\d+\//, '');
+    return `${supabaseUrl}/storage/v1/object/public/exercise-media/${cleanPath}`;
+  }
+  return url;
+}
+
 function getSetsDisplay(ex: any): { reps: string; weight: string; restTime: string }[] {
   if (ex?.setsConfig && Array.isArray(ex.setsConfig) && ex.setsConfig.length > 0) {
     return ex.setsConfig;
@@ -103,8 +121,8 @@ export function TreinoDetail({ id }: { id: string }) {
                         <MediaGallery
                           files={
                             ex?.mediaFiles && Array.isArray(ex.mediaFiles) && ex.mediaFiles.length > 0
-                              ? ex.mediaFiles
-                              : ex?.mediaUrl ? [{ url: ex.mediaUrl, type: ex.mediaType }] : []
+                              ? ex.mediaFiles.map((m: any) => ({ url: normalizeMediaUrl(m.url), type: m.type ?? 'image' }))
+                              : ex?.mediaUrl ? [{ url: normalizeMediaUrl(ex.mediaUrl), type: ex.mediaType ?? 'image' }] : []
                           }
                         />
                       </div>
