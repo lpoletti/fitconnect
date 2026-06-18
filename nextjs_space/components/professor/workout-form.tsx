@@ -81,13 +81,9 @@ function parseExercise(e: any): Exercise {
       restTime: s?.restTime ?? '30s',
     }));
   } else if (e?.hasWarmup) {
-    const count = e?.warmupSets ?? 2;
-    warmupConfig = Array.from({ length: count }, () => ({
-      reps: e?.warmupReps ?? '15',
-      weight: e?.warmupWeight ?? '50',
-      weightUnit: 'percent' as const,
-      restTime: '30s',
-    }));
+    // If warmupConfig is missing but hasWarmup is true, start with empty config
+    // so user can reconfigure instead of silently losing data
+    warmupConfig = [];
   }
 
   return {

@@ -260,11 +260,29 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
       .then((r: any) => r.ok ? r.json() : null)
       .then((d: any) => {
         setWorkout(d);
-        if (d?.exercises && !hasRestored) {
+        if (d?.exercises) {
           const lastLogExercises = d?.lastLog?.exerciseLogs ?? [];
-          setExerciseStates((d.exercises ?? []).map((ex: any) => {
+          // Always rebuild from fresh API data to get correct warmupConfig/set structure
+          // But preserve completion status from restored session if available
+          setExerciseStates((prevStates: any[]) => (d.exercises ?? []).map((ex: any, exIdx: number) => {
             const matched = lastLogExercises.find((l: any) => l.exerciseName === ex.exerciseName);
-            return buildExerciseState(ex, matched);
+            const fresh = buildExerciseState(ex, matched);
+            // If we had a restored session, preserve completed status
+            const restored = prevStates[exIdx];
+            if (restored && hasRestored) {
+              return {
+                ...fresh,
+                setsLog: fresh.setsLog.map((s: any, si: number) => ({
+                  ...s,
+                  completed: restored.setsLog?.[si]?.completed ?? false,
+                })),
+                warmupLog: fresh.warmupLog.map((w: any, wi: number) => ({
+                  ...w,
+                  completed: restored.warmupLog?.[wi]?.completed ?? false,
+                })),
+              };
+            }
+            return fresh;
           }));
           setTimeout(() => saveImmediately(), 100);
         }

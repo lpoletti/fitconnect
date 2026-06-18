@@ -97,26 +97,31 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
           });
         }
         // Delete old exercises and recreate with updated data
+        // Using individual creates instead of createMany to preserve Json fields (warmupConfig, mediaFiles)
         await prisma.assignedWorkoutExercise.deleteMany({ where: { assignedWorkoutId: aw.id } });
-        await prisma.assignedWorkoutExercise.createMany({
-          data: workout.exercises.map((ex: any) => ({
-            assignedWorkoutId: aw.id,
-            exerciseName: ex.exerciseName,
-            sets: ex.sets,
-            reps: ex.reps,
-            suggestedWeight: ex.suggestedWeight,
-            restTime: ex.restTime,
-            notes: ex.notes,
-            order: ex.order,
-            hasWarmup: ex.hasWarmup,
-            setsConfig: ex.setsConfig,
-            warmupConfig: ex.warmupConfig,
-            mediaUrl: ex.mediaUrl,
-            mediaType: ex.mediaType,
-            mediaPath: ex.mediaPath,
-            mediaFiles: ex.mediaFiles,
-          })),
-        });
+        await prisma.$transaction(
+          workout.exercises.map((ex: any) =>
+            prisma.assignedWorkoutExercise.create({
+              data: {
+                assignedWorkoutId: aw.id,
+                exerciseName: ex.exerciseName,
+                sets: ex.sets,
+                reps: ex.reps,
+                suggestedWeight: ex.suggestedWeight,
+                restTime: ex.restTime,
+                notes: ex.notes,
+                order: ex.order,
+                hasWarmup: ex.hasWarmup,
+                setsConfig: ex.setsConfig ?? undefined,
+                warmupConfig: ex.warmupConfig ?? undefined,
+                mediaUrl: ex.mediaUrl,
+                mediaType: ex.mediaType,
+                mediaPath: ex.mediaPath,
+                mediaFiles: ex.mediaFiles ?? undefined,
+              },
+            })
+          )
+        );
       }
     } catch (propagateError: any) {
       console.error('Error propagating workout update to assigned workouts:', propagateError);
