@@ -38,6 +38,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     });
     const oldName = oldWorkout?.name;
 
+    // Deep-clone exercises to ensure all Json fields are plain serializable objects
+    const cleanExercises = JSON.parse(JSON.stringify(exercises ?? []));
+
     // Delete old exercises and recreate
     await prisma.workoutTemplateExercise.deleteMany({
       where: { templateId: params?.id },
@@ -50,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         category: category ?? null,
         description: description ?? null,
         exercises: {
-          create: (exercises ?? []).map((ex: any, i: number) => {
+          create: cleanExercises.map((ex: any, i: number) => {
             const sc = ex?.setsConfig ?? [];
             return {
               exerciseName: ex?.exerciseName ?? 'Exercício',

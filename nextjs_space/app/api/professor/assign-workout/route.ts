@@ -35,6 +35,9 @@ export async function POST(request: NextRequest) {
 
     const results = [];
     for (const wk of workoutList) {
+      // Deep-clone exercises to ensure all Json fields are plain serializable objects
+      const cleanExercises = JSON.parse(JSON.stringify(wk.exercises ?? []));
+
       const assigned = await prisma.assignedWorkout.create({
         data: {
           studentId,
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
           startDate: wk.startDate ? new Date(wk.startDate) : new Date(),
           status: 'active',
           exercises: {
-            create: (wk.exercises ?? []).map((ex: any, i: number) => ({
+            create: cleanExercises.map((ex: any, i: number) => ({
               exerciseName: ex?.exerciseName ?? 'Exercício',
               sets: ex?.setsConfig?.length || ex?.sets || 3,
               reps: ex?.setsConfig?.[0]?.reps ?? ex?.reps ?? '12',

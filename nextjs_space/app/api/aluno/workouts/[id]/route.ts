@@ -51,6 +51,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Nome e exercícios são obrigatórios.' }, { status: 400 });
     }
 
+    // Deep-clone exercises to ensure all Json fields are plain serializable objects
+    const cleanExercises = JSON.parse(JSON.stringify(exercises));
+
     // Delete old exercises and recreate
     await prisma.assignedWorkoutExercise.deleteMany({ where: { assignedWorkoutId: params.id } });
 
@@ -59,7 +62,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       data: {
         workoutName: name.trim(),
         exercises: {
-          create: exercises.map((ex: any, idx: number) => {
+          create: cleanExercises.map((ex: any, idx: number) => {
             const setsConfig = ex?.setsConfig && Array.isArray(ex.setsConfig) && ex.setsConfig.length > 0
               ? ex.setsConfig : null;
             const warmupConfig = ex?.warmupConfig && Array.isArray(ex.warmupConfig) && ex.warmupConfig.length > 0
@@ -87,12 +90,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
               warmupSets: warmupConfig ? warmupConfig.length : null,
               warmupReps: warmupConfig ? (warmupConfig[0]?.reps ?? null) : null,
               warmupWeight: warmupConfig ? (warmupConfig[0]?.weight ?? null) : null,
-              setsConfig: setsConfig ?? undefined,
-              warmupConfig: warmupConfig ?? undefined,
+              setsConfig: setsConfig,
+              warmupConfig: warmupConfig,
               mediaUrl,
               mediaType,
               mediaPath,
-              mediaFiles: mediaFiles ?? undefined,
+              mediaFiles: mediaFiles,
             };
           }),
         },

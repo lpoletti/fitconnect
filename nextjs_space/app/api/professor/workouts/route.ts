@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
     const { name, category, description, exercises } = body ?? {};
     if (!name) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 });
 
+    // Deep-clone exercises to ensure all Json fields are plain serializable objects
+    const cleanExercises = JSON.parse(JSON.stringify(exercises ?? []));
+
     const workout = await prisma.workoutTemplate.create({
       data: {
         professorId: session.user.professorId,
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
         category: category ?? null,
         description: description ?? null,
         exercises: {
-          create: (exercises ?? []).map((ex: any, i: number) => {
+          create: cleanExercises.map((ex: any, i: number) => {
             const sc = ex?.setsConfig ?? [];
             return {
               exerciseName: ex?.exerciseName ?? 'Exercício',

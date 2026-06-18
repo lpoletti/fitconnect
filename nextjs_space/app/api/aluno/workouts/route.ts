@@ -17,6 +17,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nome e exercícios são obrigatórios.' }, { status: 400 });
     }
 
+    // Deep-clone exercises to ensure all Json fields are plain serializable objects
+    const cleanExercises = JSON.parse(JSON.stringify(exercises));
+
     const workout = await prisma.assignedWorkout.create({
       data: {
         studentId: session.user.studentId,
@@ -26,8 +29,7 @@ export async function POST(request: NextRequest) {
         status: 'active',
         startDate: new Date(),
         exercises: {
-          create: exercises.map((ex: any, idx: number) => {
-            // Support new format with setsConfig or legacy flat fields
+          create: cleanExercises.map((ex: any, idx: number) => {
             const setsConfig = ex?.setsConfig && Array.isArray(ex.setsConfig) && ex.setsConfig.length > 0
               ? ex.setsConfig
               : null;
@@ -57,12 +59,12 @@ export async function POST(request: NextRequest) {
               warmupSets: warmupConfig ? warmupConfig.length : null,
               warmupReps: warmupConfig ? (warmupConfig[0]?.reps ?? null) : null,
               warmupWeight: warmupConfig ? (warmupConfig[0]?.weight ?? null) : null,
-              setsConfig: setsConfig ?? undefined,
-              warmupConfig: warmupConfig ?? undefined,
+              setsConfig: setsConfig,
+              warmupConfig: warmupConfig,
               mediaUrl,
               mediaType,
               mediaPath,
-              mediaFiles: mediaFiles ?? undefined,
+              mediaFiles: mediaFiles,
             };
           }),
         },

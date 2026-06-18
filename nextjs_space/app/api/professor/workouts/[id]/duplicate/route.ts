@@ -16,6 +16,9 @@ export async function POST(_request: NextRequest, { params }: { params: { id: st
     });
     if (!original) return NextResponse.json({ error: 'Treino não encontrado' }, { status: 404 });
 
+    // Deep-clone to ensure all Json fields are plain serializable objects
+    const cleanExercises = JSON.parse(JSON.stringify(original.exercises ?? []));
+
     const duplicate = await prisma.workoutTemplate.create({
       data: {
         professorId: session.user.professorId,
@@ -23,7 +26,7 @@ export async function POST(_request: NextRequest, { params }: { params: { id: st
         category: original.category,
         description: original.description,
         exercises: {
-          create: (original.exercises ?? []).map((ex: any) => ({
+          create: cleanExercises.map((ex: any) => ({
             exerciseName: ex.exerciseName,
             sets: ex.sets,
             reps: ex.reps,
@@ -32,12 +35,12 @@ export async function POST(_request: NextRequest, { params }: { params: { id: st
             notes: ex.notes,
             order: ex.order,
             hasWarmup: ex.hasWarmup ?? false,
-            setsConfig: (ex as any).setsConfig ?? null,
-            warmupConfig: (ex as any).warmupConfig ?? null,
-            mediaUrl: (ex as any).mediaUrl ?? null,
-            mediaType: (ex as any).mediaType ?? null,
-            mediaPath: (ex as any).mediaPath ?? null,
-            mediaFiles: (ex as any).mediaFiles ?? null,
+            setsConfig: ex.setsConfig ?? null,
+            warmupConfig: ex.warmupConfig ?? null,
+            mediaUrl: ex.mediaUrl ?? null,
+            mediaType: ex.mediaType ?? null,
+            mediaPath: ex.mediaPath ?? null,
+            mediaFiles: ex.mediaFiles ?? null,
           })),
         },
       },
