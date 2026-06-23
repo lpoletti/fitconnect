@@ -3,21 +3,16 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
+import { resetPasswordSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { token, password } = body ?? {};
+    const result = validateBody(resetPasswordSchema, body);
+    if ('error' in result) return result.error;
+    const { token, password } = result.data;
 
-    if (!token || !password) {
-      return NextResponse.json({ error: 'Token e senha sao obrigatorios.' }, { status: 400 });
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'A senha deve ter no minimo 6 caracteres.' }, { status: 400 });
-    }
-
-    // Find the token
     const verificationToken = await prisma.verificationToken.findUnique({
       where: { token },
     });

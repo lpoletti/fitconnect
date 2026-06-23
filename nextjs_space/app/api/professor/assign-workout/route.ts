@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { sendNotificationEmail, buildEmailTemplate } from '@/lib/notifications';
+import { assignWorkoutSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +14,9 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.professorId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const body = await request.json();
-    const { studentId, workoutName, startDate, exercises, workouts } = body ?? {};
+    const result = validateBody(assignWorkoutSchema, body);
+    if ('error' in result) return result.error;
+    const { studentId, workouts, workoutName, startDate, exercises } = result.data;
 
     // Verify student is linked
     const link = await prisma.studentProfessorLink.findFirst({
@@ -42,7 +46,7 @@ export async function POST(request: NextRequest) {
         data: {
           studentId,
           professorId: session.user.professorId,
-          workoutName: wk.workoutName,
+          workoutName: wk.workoutName!,
           startDate: wk.startDate ? new Date(wk.startDate) : new Date(),
           status: 'active',
           exercises: {

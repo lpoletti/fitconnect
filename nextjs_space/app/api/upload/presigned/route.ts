@@ -4,9 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { generatePresignedUploadUrl } from '@/lib/s3';
+import { uploadSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
 
@@ -16,11 +18,9 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const body = await request.json();
-    const { fileName, contentType, fileSize } = body ?? {};
-
-    if (!fileName || !contentType) {
-      return NextResponse.json({ error: 'Dados incompletos' }, { status: 400 });
-    }
+    const result = validateBody(uploadSchema, body);
+    if ('error' in result) return result.error;
+    const { fileName, contentType, fileSize } = result.data;
 
     const isImage = ALLOWED_IMAGE_TYPES.includes(contentType);
     const isVideo = ALLOWED_VIDEO_TYPES.includes(contentType);
@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
     const { uploadUrl, cloud_storage_path } = await generatePresignedUploadUrl(
       fileName,
       contentType,
-      true // exercise media is public
+      true,
+      session.user.id
     );
 
     return NextResponse.json({

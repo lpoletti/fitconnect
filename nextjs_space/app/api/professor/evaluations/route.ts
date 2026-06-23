@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { evaluationSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 // GET: list evaluations for a student
 export async function GET(request: NextRequest) {
@@ -33,18 +35,13 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.professorId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const body = await request.json();
-    const { studentId, ...data } = body;
-
-    if (!studentId) return NextResponse.json({ error: 'studentId é obrigatório' }, { status: 400 });
-    if (!data.name) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 });
-    if (!data.agreedTerms) return NextResponse.json({ error: 'Termo deve ser aceito' }, { status: 400 });
-    if (!data.photoFrontUrl || !data.photoBackUrl || !data.photoSideUrl) {
-      return NextResponse.json({ error: 'As 3 fotos são obrigatórias' }, { status: 400 });
-    }
+    const result = validateBody(evaluationSchema, body);
+    if ('error' in result) return result.error;
+    const data = result.data;
 
     const evaluation = await prisma.studentEvaluation.create({
       data: {
-        studentId,
+        studentId: data.studentId,
         professorId: session.user.professorId,
         name: data.name,
         birthDate: data.birthDate ? new Date(data.birthDate) : null,
@@ -59,15 +56,15 @@ export async function POST(request: NextRequest) {
         mainGoal: data.mainGoal ?? null,
         sleepQuality: data.sleepQuality ?? null,
         stressLevel: data.stressLevel ?? null,
-        weight: data.weight ? parseFloat(data.weight) : null,
-        height: data.height ? parseFloat(data.height) : null,
-        waist: data.waist ? parseFloat(data.waist) : null,
-        abdomen: data.abdomen ? parseFloat(data.abdomen) : null,
-        hip: data.hip ? parseFloat(data.hip) : null,
-        rightArm: data.rightArm ? parseFloat(data.rightArm) : null,
-        leftArm: data.leftArm ? parseFloat(data.leftArm) : null,
-        rightThigh: data.rightThigh ? parseFloat(data.rightThigh) : null,
-        leftThigh: data.leftThigh ? parseFloat(data.leftThigh) : null,
+        weight: data.weight ? Number(data.weight) : null,
+        height: data.height ? Number(data.height) : null,
+        waist: data.waist ? Number(data.waist) : null,
+        abdomen: data.abdomen ? Number(data.abdomen) : null,
+        hip: data.hip ? Number(data.hip) : null,
+        rightArm: data.rightArm ? Number(data.rightArm) : null,
+        leftArm: data.leftArm ? Number(data.leftArm) : null,
+        rightThigh: data.rightThigh ? Number(data.rightThigh) : null,
+        leftThigh: data.leftThigh ? Number(data.leftThigh) : null,
         photoFront: data.photoFront ?? null,
         photoBack: data.photoBack ?? null,
         photoSide: data.photoSide ?? null,

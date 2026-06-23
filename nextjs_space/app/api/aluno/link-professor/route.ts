@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { linkProfessorSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,11 +13,9 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.studentId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const body = await request.json();
-    const { inviteCode } = body ?? {};
-
-    if (!inviteCode || typeof inviteCode !== 'string' || inviteCode.trim().length === 0) {
-      return NextResponse.json({ error: 'Código de convite é obrigatório.' }, { status: 400 });
-    }
+    const result = validateBody(linkProfessorSchema, body);
+    if ('error' in result) return result.error;
+    const { inviteCode } = result.data;
 
     const code = inviteCode.toUpperCase().trim();
 

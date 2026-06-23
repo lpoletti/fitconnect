@@ -9,12 +9,36 @@ datasource db {
     directUrl = env("DIRECT_URL")
 }
 
+enum UserType {
+  professor
+  aluno
+}
+
+enum LinkStatus {
+  active
+  inactive
+  pending
+}
+
+enum WorkoutStatus {
+  active
+  completed
+  inactive
+}
+
+enum Plan {
+  free
+  pro10
+  pro50
+  pro100
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String
   passwordHash  String?   @map("password_hash")
-  userType      String?   @map("user_type") // 'professor' | 'aluno' | null (pending onboarding)
+  userType      UserType? @map("user_type")
   emailVerified DateTime? @map("email_verified")
   image         String?
   createdAt     DateTime  @default(now()) @map("created_at")
@@ -59,7 +83,7 @@ model VerificationToken {
 model Professor {
   id                    String    @id @default(cuid())
   userId                String    @unique @map("user_id")
-  plan                  String    @default("free")
+  plan                  Plan      @default(free)
   maxStudents           Int       @default(2) @map("max_students")
   specialty             String?   @default("Personal Trainer")
   inviteCode            String?   @unique @map("invite_code")
@@ -96,17 +120,18 @@ model Student {
 }
 
 model StudentProfessorLink {
-  id            String    @id @default(cuid())
-  studentId     String    @map("student_id")
-  professorId   String    @map("professor_id")
-  status        String    @default("pending") // 'active' | 'inactive' | 'pending'
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id            String      @id @default(cuid())
+  studentId     String      @map("student_id")
+  professorId   String      @map("professor_id")
+  status        LinkStatus  @default(pending)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
   professor     Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, professorId])
+  @@index([professorId, status])
   @@map("student_professor_links")
 }
 
@@ -152,20 +177,22 @@ model WorkoutTemplateExercise {
 }
 
 model AssignedWorkout {
-  id              String    @id @default(cuid())
-  studentId       String    @map("student_id")
-  professorId     String?   @map("professor_id")
-  workoutName     String    @map("workout_name")
-  startDate       DateTime  @map("start_date")
-  status          String    @default("active") // 'active' | 'completed' | 'inactive'
-  isPersonal      Boolean   @default(false) @map("is_personal")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id              String        @id @default(cuid())
+  studentId       String        @map("student_id")
+  professorId     String?       @map("professor_id")
+  workoutName     String        @map("workout_name")
+  startDate       DateTime      @map("start_date")
+  status          WorkoutStatus @default(active)
+  isPersonal      Boolean       @default(false) @map("is_personal")
+  createdAt       DateTime      @default(now()) @map("created_at")
 
-  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  professor       Professor? @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  student         Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  professor       Professor?  @relation(fields: [professorId], references: [id], onDelete: Cascade)
   exercises       AssignedWorkoutExercise[]
   workoutLogs     WorkoutLog[]
 
+  @@index([studentId, status])
+  @@index([professorId])
   @@map("assigned_workouts")
 }
 
@@ -206,6 +233,7 @@ model WorkoutLog {
   assignedWorkout AssignedWorkout @relation(fields: [assignedWorkoutId], references: [id], onDelete: Cascade)
   exerciseLogs    ExerciseLog[]
 
+  @@index([studentId])
   @@map("workout_logs")
 }
 
@@ -218,6 +246,7 @@ model PendingInvite {
   professor     Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
 
   @@unique([email, professorId])
+  @@index([email])
   @@map("pending_invites")
 }
 

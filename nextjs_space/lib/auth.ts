@@ -50,9 +50,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.userId = user.id;
       }
-      // Always refresh user data from DB on sign-in, session update, or missing data
-      // The adapter returns User without relations, so we must fetch professorId/studentId from DB
-      if (user || trigger === 'update' || !token.userType || !token.studentId && !token.professorId) {
+      if (user || trigger === 'update') {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: (token.userId ?? (user as any)?.id) as string },

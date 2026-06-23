@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import crypto from 'crypto';
+import { onboardingSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 function generateInviteCode(): string {
   return crypto.randomBytes(3).toString('hex').toUpperCase().slice(0, 6);
@@ -18,11 +20,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userType, inviteCode } = body;
-
-    if (!userType || !['professor', 'aluno'].includes(userType)) {
-      return NextResponse.json({ error: 'Tipo de usuário inválido' }, { status: 400 });
-    }
+    const result = validateBody(onboardingSchema, body);
+    if ('error' in result) return result.error;
+    const { userType, inviteCode } = result.data;
 
     const user = await prisma.user.findUnique({ where: { id: session.user.id } });
     if (!user) {
@@ -34,70 +34,67 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Perfil já configurado' }, { status: 400 });
     }
 
-    // Update user type
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { userType },
-    });
-
-    if (userType === 'professor') {
-      // Create professor record
-      let code = generateInviteCode();
-      let attempts = 0;
-      while (attempts < 10) {
-        const exists = await prisma.professor.findUnique({ where: { inviteCode: code } });
-        if (!exists) break;
-        code = generateInviteCode();
-        attempts++;
-      }
-      await prisma.professor.create({
-        data: {
-          userId: user.id,
-          plan: 'free',
-          maxStudents: 2,
-          inviteCode: code,
-        },
-      });
-    } else {
-      // Create student record
-      const student = await prisma.student.create({
-        data: { userId: user.id },
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { userType },
       });
 
-      // Check invite code or pending invite
-      if (inviteCode) {
-        const professor = await prisma.professor.findUnique({ where: { inviteCode: inviteCode.toUpperCase() } });
-        if (professor) {
-          await prisma.studentProfessorLink.create({
-            data: {
-              studentId: student.id,
-              professorId: professor.id,
-              status: 'active',
-            },
-          });
+      if (userType === 'professor') {
+        let code = generateInviteCode();
+        let attempts = 0;
+        while (attempts < 10) {
+          const exists = await tx.professor.findUnique({ where: { inviteCode: code } });
+          if (!exists) break;
+          code = generateInviteCode();
+          attempts++;
         }
-      }
-
-      // Check for pending invites by email
-      const pendingInvites = await prisma.pendingInvite.findMany({
-        where: { email: user.email.toLowerCase() },
-      });
-      for (const invite of pendingInvites) {
-        const existingLink = await prisma.studentProfessorLink.findUnique({
-          where: { studentId_professorId: { studentId: student.id, professorId: invite.professorId } },
+        await tx.professor.create({
+          data: {
+            userId: user.id,
+            plan: 'free',
+            maxStudents: 2,
+            inviteCode: code,
+          },
         });
-        if (!existingLink) {
-          await prisma.studentProfessorLink.create({
-            data: {
-              studentId: student.id,
-              professorId: invite.professorId,
-              status: 'active',
-            },
-          });
+      } else {
+        const student = await tx.student.create({
+          data: { userId: user.id },
+        });
+
+        if (inviteCode) {
+          const professor = await tx.professor.findUnique({ where: { inviteCode: inviteCode.toUpperCase() } });
+          if (professor) {
+            await tx.studentProfessorLink.create({
+              data: {
+                studentId: student.id,
+                professorId: professor.id,
+                status: 'active',
+              },
+            });
+          }
         }
-        await prisma.pendingInvite.delete({ where: { id: invite.id } });
+
+        const pendingInvites = await tx.pendingInvite.findMany({
+          where: { email: user.email.toLowerCase() },
+        });
+        for (const invite of pendingInvites) {
+          const existingLink = await tx.studentProfessorLink.findUnique({
+            where: { studentId_professorId: { studentId: student.id, professorId: invite.professorId } },
+          });
+          if (!existingLink) {
+            await tx.studentProfessorLink.create({
+              data: {
+                studentId: student.id,
+                professorId: invite.professorId,
+                status: 'active',
+              },
+            });
+          }
+          await tx.pendingInvite.delete({ where: { id: invite.id } });
+        }
       }
-    }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

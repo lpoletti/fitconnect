@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { stripe, STRIPE_PLAN_CONFIG } from '@/lib/stripe';
+import { checkoutSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,12 +16,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { planKey, billing } = body ?? {};
+    const result = validateBody(checkoutSchema, body);
+    if ('error' in result) return result.error;
+    const { planKey, billing } = result.data;
 
-    const config = STRIPE_PLAN_CONFIG[planKey];
-    if (!config) {
-      return NextResponse.json({ error: 'Plano inválido' }, { status: 400 });
-    }
+    const config = STRIPE_PLAN_CONFIG[planKey]!;
 
     const professor = await prisma.professor.findUnique({
       where: { id: session.user.professorId },

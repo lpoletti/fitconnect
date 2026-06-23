@@ -1,4 +1,5 @@
 import { Inter, JetBrains_Mono } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
@@ -31,10 +32,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <script src="https://apps.abacus.ai/chatllm/appllm-lib.js"></script>
-      </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
+        <Script
+          src="https://apps.abacus.ai/chatllm/appllm-lib.js"
+          strategy="afterInteractive"
+        />
         <Providers>
           <ThemeProvider
             attribute="class"

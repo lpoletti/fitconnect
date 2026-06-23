@@ -11,10 +11,12 @@ const BUCKET = 'exercise-media';
 export async function generatePresignedUploadUrl(
   fileName: string,
   contentType: string,
-  isPublic = false
+  isPublic = false,
+  userId?: string
 ) {
   const prefix = isPublic ? 'public/uploads' : 'uploads';
-  const cloud_storage_path = `${prefix}/${Date.now()}-${fileName}`;
+  const userPrefix = userId ? `${userId}` : 'anonymous';
+  const cloud_storage_path = `${prefix}/${userPrefix}/${Date.now()}-${fileName}`;
 
   const { data, error } = await supabaseAdmin.storage
     .from(BUCKET)

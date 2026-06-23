@@ -6,6 +6,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getPlanLimits } from '@/lib/plans';
 import { sendNotificationEmail, buildEmailTemplate } from '@/lib/notifications';
+import { inviteStudentSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 export async function GET() {
   try {
@@ -82,9 +84,9 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.professorId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const body = await request.json();
-    const { email } = body ?? {};
-    if (!email) return NextResponse.json({ error: 'Email é obrigatório' }, { status: 400 });
-
+    const result = validateBody(inviteStudentSchema, body);
+    if ('error' in result) return result.error;
+    const { email } = result.data;
     const normalizedEmail = email.toLowerCase().trim();
 
     // Check limit

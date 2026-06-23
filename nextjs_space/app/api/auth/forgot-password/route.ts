@@ -4,15 +4,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import { sendNotificationEmail, buildEmailTemplate } from '@/lib/notifications';
+import { forgotPasswordSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email } = body ?? {};
-
-    if (!email) {
-      return NextResponse.json({ error: 'Email e obrigatorio.' }, { status: 400 });
-    }
+    const result = validateBody(forgotPasswordSchema, body);
+    if ('error' in result) return result.error;
+    const { email } = result.data;
 
     const normalizedEmail = email.toLowerCase().trim();
     const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });

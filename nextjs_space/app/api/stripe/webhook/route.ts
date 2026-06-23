@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { stripe, STRIPE_PLAN_CONFIG } from '@/lib/stripe';
+import { Plan } from '@prisma/client';
 import { getPlanLimits } from '@/lib/plans';
 import { sendNotificationEmail, buildEmailTemplate } from '@/lib/notifications';
 
@@ -14,16 +15,16 @@ export async function POST(request: NextRequest) {
     let event;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-    if (webhookSecret && sig) {
-      try {
-        event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-      } catch (err: any) {
-        console.error('Webhook signature verification failed:', err.message);
-        return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });
-      }
-    } else {
-      // For development without webhook secret
-      event = JSON.parse(body);
+    if (!webhookSecret || !sig) {
+      console.error('Stripe webhook: missing STRIPE_WEBHOOK_SECRET or stripe-signature header');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+    }
+
+    try {
+      event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+    } catch (err: any) {
+      console.error('Webhook signature verification failed:', err.message);
+      return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });
     }
 
     console.log('Stripe webhook event:', event.type);
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
           await prisma.professor.update({
             where: { id: professorId },
             data: {
-              plan: planKey,
+              plan: planKey as Plan,
               maxStudents: planLimits.maxStudents,
               stripeSubscriptionId: session.subscription as string,
               stripeBillingCycle: billing,

@@ -9,12 +9,11 @@ import {
   RestTimerState,
   WorkoutSession,
 } from '@/lib/workout-db';
+import { useRefSyncedState, SyncedState } from './use-ref-synced-state';
+import { useWorkoutPersistence } from './use-workout-persistence';
+import { useWorkoutRecovery, RecoveryInfo } from './use-workout-recovery';
 
-export interface RecoveryInfo {
-  workoutId: string;
-  elapsedSeconds: number;
-  lastUpdated: number;
-}
+export type { RecoveryInfo };
 
 const EMERGENCY_KEY = 'fitconnect-workout-bkp';
 
@@ -23,131 +22,72 @@ export function useWorkoutSession(workoutId: string) {
   const [_notes, _setNotes] = useState('');
   const [_elapsedSeconds, _setElapsedSeconds] = useState(0);
   const [_restTimer, _setRestTimer] = useState<RestTimerState>({ exIndex: -1, active: false, seconds: 0, total: 0 });
-  const [isRestoring, setIsRestoring] = useState(true);
-  const [recovery, setRecovery] = useState<RecoveryInfo | null>(null);
-
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasRestoredRef = useRef(false);
-  const isActiveRef = useRef(false);
-  const loadedRef = useRef(false);
   const [isSessionActive, setIsSessionActive] = useState(false);
+
+  const isActiveRef = useRef(false);
+  const hasRestoredRef = useRef(false);
+
+  const synced = useRefSyncedState({
+    exerciseStates: [],
+    notes: '',
+    elapsedSeconds: 0,
+    restTimer: { exIndex: -1, active: false, seconds: 0, total: 0 },
+  });
+
+  const setExerciseStates = useCallback((updater: SetStateAction<ExerciseState[]>) => {
+    _setExerciseStates(synced.update('exerciseStates', updater));
+  }, [synced]);
+
+  const setNotes = useCallback((updater: SetStateAction<string>) => {
+    _setNotes(synced.update('notes', updater));
+  }, [synced]);
+
+  const setElapsedSeconds = useCallback((updater: SetStateAction<number>) => {
+    _setElapsedSeconds(synced.update('elapsedSeconds', updater));
+  }, [synced]);
+
+  const setRestTimer = useCallback((updater: SetStateAction<RestTimerState>) => {
+    _setRestTimer(synced.update('restTimer', updater));
+  }, [synced]);
 
   function setSessionActive(val: boolean) {
     isActiveRef.current = val;
     setIsSessionActive(val);
   }
 
-  // Refs atualizados INLINE nos setters wrappers - SEM race condition
-  const latestRef = useRef({
-    exerciseStates: [] as ExerciseState[],
-    notes: '',
-    elapsedSeconds: 0,
-    restTimer: { exIndex: -1, active: false, seconds: 0, total: 0 } as RestTimerState,
-  });
+  const getSessionData = useCallback((): WorkoutSession => ({
+    workoutId,
+    ...synced.ref.current,
+    lastUpdated: Date.now(),
+    status: 'active',
+  }), [workoutId]);
 
-  // Wrappers que atualizam o ref junto com o state (sincrono)
-  const setExerciseStates = useCallback((updater: SetStateAction<ExerciseState[]>) => {
-    _setExerciseStates(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      latestRef.current.exerciseStates = next;
-      return next;
-    });
+  const persistence = useWorkoutPersistence(
+    workoutId,
+    getSessionData,
+    isSessionActive,
+    false,
+    [_exerciseStates, _notes, _elapsedSeconds, _restTimer],
+  );
+
+  const handleRestore = useCallback((session: WorkoutSession) => {
+    setExerciseStates(session.exerciseStates);
+    setNotes(session.notes);
+    setElapsedSeconds(session.elapsedSeconds);
+    if (session.restTimer) setRestTimer(session.restTimer);
+    hasRestoredRef.current = true;
+    setSessionActive(true);
   }, []);
 
-  const setNotes = useCallback((updater: SetStateAction<string>) => {
-    _setNotes(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      latestRef.current.notes = next;
-      return next;
-    });
+  const handleFreshStart = useCallback(() => {
+    setSessionActive(true);
   }, []);
 
-  const setElapsedSeconds = useCallback((updater: SetStateAction<number>) => {
-    _setElapsedSeconds(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      latestRef.current.elapsedSeconds = next;
-      return next;
-    });
-  }, []);
-
-  const setRestTimer = useCallback((updater: SetStateAction<RestTimerState>) => {
-    _setRestTimer(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      latestRef.current.restTimer = next;
-      return next;
-    });
-  }, []);
-
-  function persistToLocalStorage(data: WorkoutSession) {
-    try { localStorage.setItem(EMERGENCY_KEY, JSON.stringify(data)); } catch {}
-  }
-
-  function removeLocalBackup() {
-    try { localStorage.removeItem(EMERGENCY_KEY); } catch {}
-  }
-
-  const doSave = useCallback(() => {
-    const data: WorkoutSession = {
-      workoutId,
-      ...latestRef.current,
-      lastUpdated: Date.now(),
-      status: 'active',
-    };
-    saveWorkoutSession(data);
-    persistToLocalStorage(data);
-  }, [workoutId, _exerciseStates, _notes, _elapsedSeconds, _restTimer]);
-
-  const saveImmediately = useCallback(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    doSave();
-  }, [doSave]);
-
-  const syncSaveForUnload = useCallback(() => {
-    const data: WorkoutSession = {
-      workoutId,
-      ...latestRef.current,
-      lastUpdated: Date.now(),
-      status: 'active',
-    };
-    persistToLocalStorage(data);
-  }, [workoutId, _exerciseStates, _notes, _elapsedSeconds, _restTimer]);
-
-  useEffect(() => {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
-
-    loadWorkoutSession().then((session) => {
-      if (!session || session.status !== 'active') {
-        try {
-          const raw = localStorage.getItem(EMERGENCY_KEY);
-          if (raw) {
-            const parsed: WorkoutSession = JSON.parse(raw);
-            if (parsed.status === 'active') session = parsed;
-          }
-        } catch {}
-      }
-
-      if (session && session.status === 'active') {
-        if (session.workoutId === workoutId) {
-          setExerciseStates(session.exerciseStates);
-          setNotes(session.notes);
-          setElapsedSeconds(session.elapsedSeconds);
-          if (session.restTimer) setRestTimer(session.restTimer);
-          hasRestoredRef.current = true;
-          setSessionActive(true);
-        } else {
-          setRecovery({
-            workoutId: session.workoutId,
-            elapsedSeconds: session.elapsedSeconds,
-            lastUpdated: session.lastUpdated,
-          });
-        }
-      } else {
-        setSessionActive(true);
-      }
-      setIsRestoring(false);
-    });
-  }, [workoutId]);
+  const { isRestoring, recovery, discardRecovery: _discardRecovery, restoreRecovery: _restoreRecovery } = useWorkoutRecovery(
+    workoutId,
+    handleRestore,
+    handleFreshStart,
+  );
 
   useEffect(() => {
     if (isRestoring || recovery) return;
@@ -158,59 +98,25 @@ export function useWorkoutSession(workoutId: string) {
     return () => clearInterval(interval);
   }, [isRestoring, recovery]);
 
-  useEffect(() => {
-    if (!isActiveRef.current || recovery) return;
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(doSave, 500);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [doSave, recovery]);
-
   const discardRecovery = useCallback(async () => {
-    removeLocalBackup();
-    await deleteWorkoutSession();
-    setRecovery(null);
-    setSessionActive(true);
+    await _discardRecovery(persistence.removeLocalBackup);
     setElapsedSeconds(0);
     setRestTimer({ exIndex: -1, active: false, seconds: 0, total: 0 });
-  }, []);
+  }, [_discardRecovery, persistence.removeLocalBackup]);
 
   const restoreRecovery = useCallback(async () => {
-    let session = await loadWorkoutSession();
-    if (!session || session.status !== 'active') {
-      try {
-        const raw = localStorage.getItem(EMERGENCY_KEY);
-        if (raw) {
-          const parsed: WorkoutSession = JSON.parse(raw);
-          if (parsed.status === 'active') session = parsed;
-        }
-      } catch {}
-    }
-    if (session && session.status === 'active') {
-      setExerciseStates(session.exerciseStates);
-      setNotes(session.notes);
-      setElapsedSeconds(session.elapsedSeconds);
-      if (session.restTimer) setRestTimer(session.restTimer);
-      hasRestoredRef.current = true;
-      setSessionActive(true);
-    }
-    setRecovery(null);
-  }, []);
+    await _restoreRecovery(handleRestore);
+  }, [_restoreRecovery, handleRestore]);
 
   const cancelWorkout = useCallback(async () => {
     setSessionActive(false);
-    removeLocalBackup();
-    await deleteWorkoutSession();
-  }, []);
+    await persistence.deleteSession();
+  }, [persistence]);
 
   const clearSession = useCallback(async () => {
     setSessionActive(false);
-    removeLocalBackup();
-    await deleteWorkoutSession();
-    latestRef.current = {
+    await persistence.deleteSession();
+    synced.ref.current = {
       exerciseStates: [], notes: '', elapsedSeconds: 0,
       restTimer: { exIndex: -1, active: false, seconds: 0, total: 0 },
     };
@@ -218,9 +124,7 @@ export function useWorkoutSession(workoutId: string) {
     _setNotes('');
     _setElapsedSeconds(0);
     _setRestTimer({ exIndex: -1, active: false, seconds: 0, total: 0 });
-  }, []);
-
-  const hasRestored = hasRestoredRef.current;
+  }, [persistence]);
 
   return {
     exerciseStates: _exerciseStates,
@@ -233,9 +137,9 @@ export function useWorkoutSession(workoutId: string) {
     isRestoring,
     recovery,
     isSessionActive,
-    hasRestored,
-    saveImmediately,
-    syncSaveForUnload,
+    hasRestored: hasRestoredRef.current,
+    saveImmediately: persistence.saveImmediately,
+    syncSaveForUnload: persistence.syncSaveForUnload,
     discardRecovery,
     restoreRecovery,
     cancelWorkout,

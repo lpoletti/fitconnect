@@ -3,21 +3,15 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
+import { signupSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name, userType, inviteCode } = body ?? {};
-
-    if (!email || !password || !name || !userType) {
-      return NextResponse.json({ error: 'Todos os campos são obrigatórios.' }, { status: 400 });
-    }
-    if (!['professor', 'aluno'].includes(userType)) {
-      return NextResponse.json({ error: 'Tipo de usuário inválido.' }, { status: 400 });
-    }
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'A senha deve ter no mínimo 6 caracteres.' }, { status: 400 });
-    }
+    const result = validateBody(signupSchema, body);
+    if ('error' in result) return result.error;
+    const { email, password, name, userType, inviteCode } = result.data;
 
     const normalizedEmail = email.toLowerCase().trim();
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -26,100 +20,97 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        name: name.trim(),
-        passwordHash,
-        userType,
-      },
-    });
 
-    if (userType === 'professor') {
-      // Generate unique invite code for professor
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let code = '';
-      for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      // Ensure uniqueness
-      let attempts = 0;
-      while (attempts < 10) {
-        const dup = await prisma.professor.findUnique({ where: { inviteCode: code } });
-        if (!dup) break;
-        code = '';
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          name: name.trim(),
+          passwordHash,
+          userType,
+        },
+      });
+
+      if (userType === 'professor') {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = '';
         for (let i = 0; i < 6; i++) {
           code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        attempts++;
-      }
-
-      await prisma.professor.create({
-        data: { userId: user.id, plan: 'free', maxStudents: 2, inviteCode: code },
-      });
-    } else {
-      const student = await prisma.student.create({
-        data: { userId: user.id },
-      });
-
-      // Auto-link via PendingInvite records (professor invited this email)
-      const pendingInvites = await prisma.pendingInvite.findMany({
-        where: { email: normalizedEmail },
-      });
-      for (const inv of pendingInvites) {
-        // Check plan limit before creating link
-        const activeCount = await prisma.studentProfessorLink.count({
-          where: { professorId: inv.professorId, status: 'active' },
-        });
-        const prof = await prisma.professor.findUnique({ where: { id: inv.professorId } });
-        const maxStudents = prof?.maxStudents ?? 2;
-        if (activeCount < maxStudents) {
-          await prisma.studentProfessorLink.create({
-            data: {
-              studentId: student.id,
-              professorId: inv.professorId,
-              status: 'active',
-            },
-          });
+        let attempts = 0;
+        while (attempts < 10) {
+          const dup = await tx.professor.findUnique({ where: { inviteCode: code } });
+          if (!dup) break;
+          code = '';
+          for (let i = 0; i < 6; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          attempts++;
         }
-      }
-      // Delete all pending invites for this email
-      if (pendingInvites.length > 0) {
-        await prisma.pendingInvite.deleteMany({ where: { email: normalizedEmail } });
-      }
-
-      // Auto-link via invite code
-      if (inviteCode) {
-        const professor = await prisma.professor.findUnique({
-          where: { inviteCode: inviteCode.toUpperCase().trim() },
+        await tx.professor.create({
+          data: { userId: createdUser.id, plan: 'free', maxStudents: 2, inviteCode: code },
         });
-        if (professor) {
-          // Check if not already linked via pending invite
-          const existingLink = await prisma.studentProfessorLink.findUnique({
-            where: {
-              studentId_professorId: {
-                studentId: student.id,
-                professorId: professor.id,
-              },
-            },
+      } else {
+        const student = await tx.student.create({
+          data: { userId: createdUser.id },
+        });
+
+        const pendingInvites = await tx.pendingInvite.findMany({
+          where: { email: normalizedEmail },
+        });
+        for (const inv of pendingInvites) {
+          const activeCount = await tx.studentProfessorLink.count({
+            where: { professorId: inv.professorId, status: 'active' },
           });
-          if (!existingLink) {
-            const activeCount = await prisma.studentProfessorLink.count({
-              where: { professorId: professor.id, status: 'active' },
+          const prof = await tx.professor.findUnique({ where: { id: inv.professorId } });
+          const maxStudents = prof?.maxStudents ?? 2;
+          if (activeCount < maxStudents) {
+            await tx.studentProfessorLink.create({
+              data: {
+                studentId: student.id,
+                professorId: inv.professorId,
+                status: 'active',
+              },
             });
-            if (activeCount < (professor.maxStudents ?? 2)) {
-              await prisma.studentProfessorLink.create({
-                data: {
+          }
+        }
+        if (pendingInvites.length > 0) {
+          await tx.pendingInvite.deleteMany({ where: { email: normalizedEmail } });
+        }
+
+        if (inviteCode) {
+          const professor = await tx.professor.findUnique({
+            where: { inviteCode: inviteCode.toUpperCase().trim() },
+          });
+          if (professor) {
+            const existingLink = await tx.studentProfessorLink.findUnique({
+              where: {
+                studentId_professorId: {
                   studentId: student.id,
                   professorId: professor.id,
-                  status: 'active',
                 },
+              },
+            });
+            if (!existingLink) {
+              const activeCount = await tx.studentProfessorLink.count({
+                where: { professorId: professor.id, status: 'active' },
               });
+              if (activeCount < (professor.maxStudents ?? 2)) {
+                await tx.studentProfessorLink.create({
+                  data: {
+                    studentId: student.id,
+                    professorId: professor.id,
+                    status: 'active',
+                  },
+                });
+              }
             }
           }
         }
       }
-    }
+
+      return createdUser;
+    });
 
     return NextResponse.json({ message: 'Conta criada com sucesso!', userId: user.id }, { status: 201 });
   } catch (error: any) {

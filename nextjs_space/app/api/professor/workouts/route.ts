@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { createTemplateSchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 export async function GET() {
   try {
@@ -29,8 +31,9 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.professorId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const body = await request.json();
-    const { name, category, description, exercises } = body ?? {};
-    if (!name) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 });
+    const result = validateBody(createTemplateSchema, body);
+    if ('error' in result) return result.error;
+    const { name, category, description, exercises } = result.data;
 
     // Deep-clone exercises to ensure all Json fields are plain serializable objects
     const cleanExercises = JSON.parse(JSON.stringify(exercises ?? []));

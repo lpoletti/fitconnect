@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { importAISchema } from '@/lib/validations';
+import { validateBody } from '@/lib/api-utils';
 
 const SYSTEM_PROMPT = `Você é um assistente especializado em extrair e estruturar dados de treinos de musculação a partir de texto livre.
 
@@ -66,11 +68,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { text } = body ?? {};
-
-    if (!text || typeof text !== 'string' || text.trim().length < 20) {
-      return NextResponse.json({ error: 'Texto muito curto. Cole o treino completo.' }, { status: 400 });
-    }
+    const result = validateBody(importAISchema, body);
+    if ('error' in result) return result.error;
+    const { text } = result.data;
 
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       generalNotes: parsed.generalNotes ?? '',
     });
   } catch (error: any) {
-    console.error('Import AI error:', error?.message, error?.stack);
-    return NextResponse.json({ error: `Erro interno ao processar: ${error?.message ?? 'unknown'}` }, { status: 500 });
+    console.error('Import AI error:', error instanceof Error ? error.message : 'unknown', error instanceof Error ? error.stack : '');
+    return NextResponse.json({ error: 'Erro interno ao processar. Tente novamente.' }, { status: 500 });
   }
 }
