@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   LayoutDashboard, ClipboardList, History, Trophy,
-  Calendar as CalendarIcon, Filter, FileCheck
+  Calendar as CalendarIcon, Filter, FileCheck, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -136,6 +136,12 @@ export function AlunoHistorico() {
                       exercises={(log?.exerciseLogs ?? []).length}
                       improved={idx === 0}
                     />
+                    {log?.autoCompleted && (
+                      <div className="flex items-center gap-1.5 mt-1 px-1">
+                        <Clock className="h-3 w-3 text-amber-400" />
+                        <span className="text-[10px] text-amber-400 font-medium">Auto-concluido</span>
+                      </div>
+                    )}
                   </div>
                   <AnimatePresence>
                     {isExpanded && (

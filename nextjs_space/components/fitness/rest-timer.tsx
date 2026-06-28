@@ -10,6 +10,7 @@ interface RestTimerProps {
   onSkip: () => void
   onComplete: () => void
   onAddTime?: (seconds: number) => void
+  variant?: 'full' | 'mini'
 }
 
 export function RestTimer({
@@ -18,6 +19,7 @@ export function RestTimer({
   onSkip,
   onComplete,
   onAddTime,
+  variant = 'full',
 }: RestTimerProps) {
   const [timeLeft, setTimeLeft] = useState(duration)
   const [isRunning, setIsRunning] = useState(autoStart)
@@ -43,10 +45,43 @@ export function RestTimer({
     return () => clearInterval(timer)
   }, [isRunning, timeLeft, onComplete])
 
+  const addTime = useCallback((seconds: number) => {
+    setTimeLeft((prev) => prev + seconds)
+    if (onAddTime) onAddTime(seconds)
+  }, [onAddTime])
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
     const s = seconds % 60
     return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
+  if (variant === 'mini') {
+    const size = 38
+    const stroke = 3
+    const radius = (size - stroke) / 2
+    const circumference = 2 * Math.PI * radius
+    const offset = circumference - (progress / 100) * circumference
+
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onSkip(); }}
+        className="relative inline-flex items-center justify-center cursor-pointer group"
+        title="Pular descanso"
+      >
+        <svg width={size} height={size} className="-rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--primary) / 0.15)" strokeWidth={stroke} />
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--primary))" strokeWidth={stroke}
+            strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+            className="transition-all duration-1000 ease-linear" />
+        </svg>
+        <span className="absolute text-[10px] font-bold text-white font-mono">{timeLeft}</span>
+        <div className="absolute inset-0 rounded-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <SkipForward className="h-3 w-3 text-primary" />
+        </div>
+      </button>
+    )
   }
 
   const circumference = 2 * Math.PI * 54
@@ -100,7 +135,7 @@ export function RestTimer({
             variant="secondary"
             size="sm"
             className="h-10 rounded-full"
-            onClick={() => onAddTime(30)}
+            onClick={() => addTime(30)}
           >
             <Plus className="h-4 w-4" />
             +30s

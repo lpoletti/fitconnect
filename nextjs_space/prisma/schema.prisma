@@ -222,11 +222,20 @@ model AssignedWorkoutExercise {
   @@map("assigned_workout_exercises")
 }
 
+enum WorkoutLogStatus {
+  in_progress
+  completed
+  auto_completed
+  cancelled
+}
+
 model WorkoutLog {
-  id              String    @id @default(cuid())
-  studentId       String    @map("student_id")
-  assignedWorkoutId String  @map("assigned_workout_id")
-  completedAt     DateTime  @default(now()) @map("completed_at")
+  id              String          @id @default(cuid())
+  studentId       String          @map("student_id")
+  assignedWorkoutId String        @map("assigned_workout_id")
+  startedAt       DateTime        @default(now()) @map("started_at")
+  completedAt     DateTime?       @map("completed_at")
+  status          WorkoutLogStatus @default(in_progress) @map("status")
   notes           String?
 
   student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -234,6 +243,8 @@ model WorkoutLog {
   exerciseLogs    ExerciseLog[]
 
   @@index([studentId])
+  @@index([status])
+  @@index([startedAt])
   @@map("workout_logs")
 }
 

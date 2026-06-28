@@ -37,6 +37,8 @@ export interface WorkoutSession {
   restTimer: RestTimerState;
   lastUpdated: number;
   status: 'active' | 'completed';
+  startedAt?: number;
+  logId?: string;
 }
 
 interface FitConnectDB extends DBSchema {

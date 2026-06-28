@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, memo, useRef } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/shared/dashboard-shell';
 import { MediaGallery } from '@/components/shared/media-lightbox';
@@ -10,43 +10,18 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ProgressRing } from '@/components/fitness/progress-ring';
+import { RestTimer } from '@/components/fitness/rest-timer';
+import { SeriesTracker } from '@/components/fitness/series-tracker';
+import { ExerciseHero } from '@/components/fitness/exercise-hero';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, ClipboardList, History, ArrowLeft, Pencil,
   Dumbbell, Clock, Weight, CheckCircle, Trophy, Flame, CheckCheck,
-  Calendar as CalendarIcon, XCircle, FileCheck, ChevronDown, ChevronUp,
-  RotateCcw, Timer, Play, Zap, SkipForward, Square, RefreshCw, AlertTriangle
+  Calendar as CalendarIcon, XCircle, FileCheck,
+  RotateCcw, Timer, Zap, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkoutSession } from '@/hooks/use-workout-session';
-
-function CircularRestMini({ seconds, total, onSkip }: { seconds: number; total: number; onSkip: () => void }) {
-  const size = 38;
-  const stroke = 3;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const percent = (seconds / total) * 100;
-  const offset = circumference - (percent / 100) * circumference;
-  return (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onSkip(); }}
-      className="relative inline-flex items-center justify-center cursor-pointer group"
-      title="Pular descanso"
-    >
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--primary) / 0.15)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--primary))" strokeWidth={stroke}
-          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-          className="transition-all duration-1000 ease-linear" />
-      </svg>
-      <span className="absolute text-[10px] font-bold text-white font-mono">{seconds}</span>
-      <div className="absolute inset-0 rounded-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-        <SkipForward className="h-3 w-3 text-primary" />
-      </div>
-    </button>
-  );
-}
 
 const navItems = [
   { label: 'Dashboard', href: '/aluno/dashboard', icon: LayoutDashboard },
@@ -97,21 +72,6 @@ function buildExerciseState(ex: any, lastExLog?: any): ExerciseState {
     setsLog,
     warmupLog,
   };
-}
-
-function CircularProgress({ percent, size = 44, stroke = 3, className = '' }: { percent: number; size?: number; stroke?: number; className?: string }) {
-  const color = percent === 100 ? 'hsl(var(--primary))' : percent > 0 ? 'hsl(var(--warning))' : 'hsl(var(--surface-elevated))';
-  return (
-    <div className={cn('relative inline-flex items-center justify-center', className)} style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={(size - stroke) / 2} fill="none" stroke="hsl(var(--surface-elevated))" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={(size - stroke) / 2} fill="none" stroke={color} strokeWidth={stroke}
-          strokeDasharray={2 * Math.PI * (size - stroke) / 2} strokeDashoffset={2 * Math.PI * (size - stroke) / 2 - (percent / 100) * 2 * Math.PI * (size - stroke) / 2}
-          strokeLinecap="round" className="transition-all duration-700 ease-out" />
-      </svg>
-      <span className="absolute text-[10px] font-bold" style={{ color }}>{Math.round(percent)}%</span>
-    </div>
-  );
 }
 
 const SetRow = memo(function SetRow({
@@ -220,6 +180,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
     elapsedSeconds, isRestoring, recovery, hasRestored, isSessionActive,
     restTimer, setRestTimer, saveImmediately, syncSaveForUnload,
     discardRecovery, restoreRecovery, cancelWorkout, clearSession,
+    syncToServer, logId,
   } = useWorkoutSession(workoutId);
 
   const isActive = isSessionActive && !isRestoring && !recovery && !loading;
@@ -241,18 +202,6 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
     window.addEventListener('pagehide', handler);
     return () => window.removeEventListener('pagehide', handler);
   }, [isActive, syncSaveForUnload]);
-
-  // Rest countdown
-  useEffect(() => {
-    if (!restTimer.active || restTimer.seconds <= 0) return;
-    const interval = setInterval(() => {
-      setRestTimer((prev: { exIndex: number; active: boolean; seconds: number; total: number }) => {
-        if (prev.seconds <= 1) return { ...prev, active: false, seconds: 0, exIndex: -1 };
-        return { ...prev, seconds: prev.seconds - 1 };
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [restTimer.active, restTimer.seconds]);
 
   useEffect(() => {
     if (isRestoring || recovery || !workoutId) return;
@@ -379,10 +328,12 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
     }
     setSaving(true);
     try {
+      await syncToServer();
       const res = await fetch(`/api/aluno/workouts/${workoutId}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          logId: logId || undefined,
           exerciseLogs: exerciseStates.map((es) => ({
             exerciseName: es.exerciseName,
             setsCompleted: es.setsLog.length,
@@ -392,6 +343,9 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
             warmupLog: es.hasWarmup ? es.warmupLog.map((w) => ({
               reps: w.reps, weight: w.weight, weightUnit: w.weightUnit, restTime: w.restTime,
             })) : null,
+            warmupSetsCompleted: es.hasWarmup ? es.warmupLog.filter(w => w.completed).length : null,
+            warmupRepsCompleted: es.hasWarmup ? es.warmupLog.map(w => w.reps).join(',') : null,
+            warmupWeightUsed: es.hasWarmup ? es.warmupLog.map(w => w.weight).join(',') : null,
           })),
           notes: notes || null,
         }),
@@ -488,21 +442,33 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
               </div>
             </div>
             <div className="flex items-center gap-2.5">
-              <CircularProgress percent={globalPercent} size={36} stroke={3} />
+              <ProgressRing value={globalPercent} size={36} strokeWidth={3}>
+                <span className="text-[10px] font-bold text-primary">{globalPercent}%</span>
+              </ProgressRing>
               <span className="text-xs text-muted-foreground font-medium">{completedCount}/{totalCount}</span>
             </div>
           </div>
         )}
 
-        {/* Session restored or last log info */}
-        {recovery ? null : ((hasRestored || workout?.lastLog) && (
-          <div className="flex items-center gap-2 px-1">
-            <RotateCcw className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs text-muted-foreground">
-              {hasRestored ? 'Treino restaurado - continuando de onde parou' : 'Dados do ultimo treino pre-carregados'}
-            </span>
-          </div>
-        ))}
+          {/* Session restored or last log info */}
+          {recovery ? null : ((hasRestored || workout?.lastLog) && (
+            <div className="flex items-center gap-2 px-1">
+              <RotateCcw className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs text-muted-foreground">
+                {hasRestored ? 'Treino restaurado - continuando de onde parou' : 'Dados do ultimo treino pre-carregados'}
+              </span>
+            </div>
+          ))}
+
+          {/* Auto-save indicator */}
+          {isSessionActive && !isRestoring && !recovery && (
+            <div className="flex items-center gap-2 px-1">
+              <Zap className="h-3.5 w-3.5 text-primary/60" />
+              <span className="text-xs text-muted-foreground/60">
+                Salva automaticamente apos 12h caso nao conclua
+              </span>
+            </div>
+          )}
 
         {/* Recovery screen */}
         {recovery && (
@@ -615,12 +581,16 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                     </div>
 
                     <div className="flex flex-col items-center gap-1 shrink-0">
-                      <CircularProgress percent={percent} size={38} stroke={3} />
-                      {restTimer.active && restTimer.exIndex === i && restTimer.seconds > 0 && (
-                        <CircularRestMini
-                          seconds={restTimer.seconds}
-                          total={restTimer.total}
+                      <ProgressRing value={percent} size={38} strokeWidth={3}>
+                        <span className={cn('text-[10px] font-bold', percent === 100 ? 'text-primary' : percent > 0 ? 'text-warning' : 'text-muted-foreground')}>{Math.round(percent)}%</span>
+                      </ProgressRing>
+                      {restTimer.active && restTimer.exIndex === i && (
+                        <RestTimer
+                          variant="mini"
+                          duration={restTimer.total}
+                          autoStart={true}
                           onSkip={() => setRestTimer({ exIndex: -1, active: false, seconds: 0, total: 0 })}
+                          onComplete={() => setRestTimer({ exIndex: -1, active: false, seconds: 0, total: 0 })}
                         />
                       )}
                     </div>
@@ -637,6 +607,38 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                         className="overflow-hidden"
                       >
                         <div className="px-4 pb-5 space-y-3">
+                          <ExerciseHero
+                            name={es.exerciseName}
+                            muscleGroup={es.hasWarmup ? 'Com aquecimento' : `${es.setsLog.length} series`}
+                            currentSeries={doneExSets}
+                            totalSeries={totalExSets}
+                            imageUrl={media.length > 0 && media[0].type === 'image' ? media[0].url : undefined}
+                          />
+
+                          {es.setsLog.length > 0 && (() => {
+                            const nextSetIdx = es.setsLog.findIndex(s => !s.completed);
+                            const currentSetIdx = nextSetIdx >= 0 ? nextSetIdx : es.setsLog.length;
+                            const currentSet = nextSetIdx >= 0 ? es.setsLog[nextSetIdx] : null;
+                            return (
+                              <SeriesTracker
+                                variant="compact"
+                                currentSeries={setsCompleted}
+                                totalSeries={es.setsLog.length}
+                                weight={currentSet?.weight || undefined}
+                                reps={currentSet?.reps || undefined}
+                                onComplete={nextSetIdx >= 0 ? () => toggleSetCompleted(i, nextSetIdx) : () => {}}
+                                onAddSeries={() => {
+                                  setExerciseStates(prev => prev.map((ex, ei) =>
+                                    ei !== i ? ex : {
+                                      ...ex,
+                                      setsLog: [...ex.setsLog, { reps: '12', weight: '', restTime: '60s', completed: false }],
+                                    }
+                                  ));
+                                }}
+                              />
+                            );
+                          })()}
+
                           {/* Notes */}
                           {ex?.notes && (
                             <div className="text-xs text-amber-400/80 italic px-1 py-2 bg-amber-500/5 rounded-lg">

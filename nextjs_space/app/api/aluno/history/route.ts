@@ -17,10 +17,11 @@ export async function GET(request: NextRequest) {
     const where: any = { studentId: session.user.studentId };
     if (from || to) {
       where.completedAt = {};
-      // Use start of day / end of day in local context (dates come as YYYY-MM-DD)
       if (from) where.completedAt.gte = new Date(from + 'T00:00:00');
       if (to) where.completedAt.lte = new Date(to + 'T23:59:59.999');
     }
+
+    where.status = { in: ['completed', 'auto_completed'] };
 
     const logs = await prisma.workoutLog.findMany({
       where,
@@ -31,7 +32,6 @@ export async function GET(request: NextRequest) {
       orderBy: { completedAt: 'desc' },
     });
 
-    // Compute stats
     const totalCompleted = logs?.length ?? 0;
     const now = new Date();
     const weekStart = new Date(now);
@@ -40,7 +40,10 @@ export async function GET(request: NextRequest) {
     const thisWeek = (logs ?? []).filter((l: any) => new Date(l?.completedAt) >= weekStart)?.length ?? 0;
 
     return NextResponse.json({
-      logs: logs ?? [],
+      logs: (logs ?? []).map((l: any) => ({
+        ...l,
+        autoCompleted: l.status === 'auto_completed',
+      })),
       stats: { totalCompleted, thisWeek },
     });
   } catch (error: any) {
