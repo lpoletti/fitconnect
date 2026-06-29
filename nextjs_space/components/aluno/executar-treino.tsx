@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, memo } from 'react';
+import { useEffect, useState, memo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/shared/dashboard-shell';
 import { MediaGallery } from '@/components/shared/media-lightbox';
@@ -12,7 +12,6 @@ import Link from 'next/link';
 import { ProgressRing } from '@/components/fitness/progress-ring';
 import { RestTimer } from '@/components/fitness/rest-timer';
 import { SeriesTracker } from '@/components/fitness/series-tracker';
-import { ExerciseHero } from '@/components/fitness/exercise-hero';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, ClipboardList, History, ArrowLeft, Pencil,
@@ -20,7 +19,7 @@ import {
   Calendar as CalendarIcon, XCircle, FileCheck,
   RotateCcw, Timer, Zap, RefreshCw
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useWorkoutSession } from '@/hooks/use-workout-session';
 
 const navItems = [
@@ -170,9 +169,8 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
   const [workout, setWorkout] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [expandedEx, setExpandedEx] = useState<number>(0);
   const [justCompleted, setJustCompleted] = useState<{ ex: number; set: number } | null>(null);
-  const [showExitWarning, setShowExitWarning] = useState(false);
+  const exerciseRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const {
     exerciseStates, setExerciseStates,
@@ -183,7 +181,21 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
     syncToServer, logId,
   } = useWorkoutSession(workoutId);
 
+  const activeEx = exerciseStates.findIndex(es => {
+    const setsOk = es.setsLog.every(s => s.completed);
+    const warmupOk = !es.hasWarmup || es.warmupLog.every(w => w.completed);
+    return !(setsOk && warmupOk);
+  });
+
   const isActive = isSessionActive && !isRestoring && !recovery && !loading;
+
+  useEffect(() => {
+    if (activeEx < 0 || loading) return;
+    const el = exerciseRefs.current[activeEx];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [activeEx, loading]);
 
   // Save when tab loses visibility (mobile browser switch, etc)
   useEffect(() => {
@@ -245,14 +257,25 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
     if (!es) return;
     const wasCompleted = es.completed;
     const nowCompleted = !wasCompleted;
-    setExerciseStates(prev => prev.map((ex, ei) =>
-      ei !== exIdx ? ex : {
-        ...ex,
-        setsLog: ex.setsLog.map((s, si) =>
-          si !== setIdx ? s : { ...s, completed: nowCompleted }
-        ),
+    setExerciseStates(prev => {
+      const updated = prev.map((ex, ei) =>
+        ei !== exIdx ? ex : {
+          ...ex,
+          setsLog: ex.setsLog.map((s, si) =>
+            si !== setIdx ? s : { ...s, completed: nowCompleted }
+          ),
+        }
+      );
+      if (nowCompleted) {
+        const exState = updated[exIdx];
+        const allSetsDone = exState.setsLog.every(s => s.completed);
+        const allWarmupDone = !exState.hasWarmup || exState.warmupLog.every(w => w.completed);
+        if (allSetsDone && allWarmupDone) {
+          setTimeout(() => toast.success(`${exState.exerciseName} concluido!`), 200);
+        }
       }
-    ));
+      return updated;
+    });
     if (nowCompleted) {
       setJustCompleted({ ex: exIdx, set: setIdx });
       setTimeout(() => setJustCompleted(null), 800);
@@ -517,7 +540,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
             {exerciseStates.map((es, i) => {
               const ex = workout?.exercises?.[i];
               const percent = getExPercent(es);
-              const isExpanded = expandedEx === i;
+              const isExActive = activeEx === i;
               const setsCompleted = es.setsLog.filter(s => s.completed).length;
               const warmupCompleted = es.warmupLog.filter(w => w.completed).length;
               const totalExSets = es.setsLog.length + es.warmupLog.length;
@@ -528,34 +551,29 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
               return (
                 <motion.div
                   key={ex?.id ?? i}
+                  ref={(el) => { exerciseRefs.current[i] = el; }}
                   layout
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   className={cn(
-                    'relative rounded-2xl border overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.20)]',
+                    'relative rounded-2xl border overflow-hidden transition-all duration-200',
+                    !allExDone && 'hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.20)]',
                     allExDone
                       ? 'bg-[rgba(34,197,94,0.10)] border-success'
-                      : isExpanded
+                      : isExActive
                         ? 'bg-card border-border/50'
                         : 'bg-surface border-border hover:border-border/80'
                   )}
-                  style={isExpanded ? {
+                  style={isExActive ? {
                     background: 'linear-gradient(90deg, rgba(16,185,129,0.15), transparent)',
                   } : undefined}
                 >
-                  {/* Left accent border when expanded */}
-                  {isExpanded && (
+                  {isExActive && (
                     <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary rounded-r-full" />
                   )}
 
-                  {/* Exercise header */}
-                  <button
-                    type="button"
-                    onClick={() => setExpandedEx(isExpanded ? -1 : i)}
-                    className="w-full p-4 flex items-center gap-4 text-left"
-                  >
-                    {/* Thumbnail */}
+                  <div className="w-full p-4 flex items-center gap-4">
                     {media.length > 0 ? (
                       <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-muted/30 ring-1 ring-border/20">
                         {media[0].type === 'image' ? (
@@ -594,27 +612,10 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                         />
                       )}
                     </div>
-                  </button>
+                  </div>
 
-                  {/* Expanded content */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="px-4 pb-5 space-y-3">
-                          <ExerciseHero
-                            name={es.exerciseName}
-                            muscleGroup={es.hasWarmup ? 'Com aquecimento' : `${es.setsLog.length} series`}
-                            currentSeries={doneExSets}
-                            totalSeries={totalExSets}
-                            imageUrl={media.length > 0 && media[0].type === 'image' ? media[0].url : undefined}
-                          />
-
+                  {isExActive && (
+                    <div className="px-4 pb-5 space-y-3">
                           {es.setsLog.length > 0 && (() => {
                             const nextSetIdx = es.setsLog.findIndex(s => !s.completed);
                             const currentSetIdx = nextSetIdx >= 0 ? nextSetIdx : es.setsLog.length;
@@ -627,14 +628,6 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                                 weight={currentSet?.weight || undefined}
                                 reps={currentSet?.reps || undefined}
                                 onComplete={nextSetIdx >= 0 ? () => toggleSetCompleted(i, nextSetIdx) : () => {}}
-                                onAddSeries={() => {
-                                  setExerciseStates(prev => prev.map((ex, ei) =>
-                                    ei !== i ? ex : {
-                                      ...ex,
-                                      setsLog: [...ex.setsLog, { reps: '12', weight: '', restTime: '60s', completed: false }],
-                                    }
-                                  ));
-                                }}
                               />
                             );
                           })()}
@@ -711,9 +704,7 @@ export function ExecutarTreino({ workoutId }: { workoutId: string }) {
                             </button>
                           )}
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  )}
                 </motion.div>
               );
             })}
